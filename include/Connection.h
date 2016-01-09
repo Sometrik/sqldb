@@ -2,8 +2,11 @@
 #define _SQLDB_CONNECTION_H_
 
 #include <string>
+#include <memory>
 
 namespace sqldb {
+  class SQLStatement;
+  
   class Connection {
   public:
     Connection() { }
@@ -11,7 +14,7 @@ namespace sqldb {
     virtual ~Connection() { }
     Connection & operator=(const Connection & other) = delete;
     
-    virtual std::shared_ptr<SQLStatement> prepare(const std::string & query) = 0;
+    virtual std::shared_ptr<sqldb::SQLStatement> prepare(const std::string & query) = 0;
     virtual void begin();
     virtual void commit();
     virtual void rollback();
