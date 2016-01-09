@@ -1,5 +1,7 @@
 #include "Connection.h"
 
+#include "SQLStatement.h"
+
 using namespace std;
 using namespace sqldb;
 
