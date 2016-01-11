@@ -22,23 +22,23 @@ namespace sqldb {
       next_bind_index = 1;
     }
 
-    virtual void bind(bool value, bool is_defined = true);
-    virtual void bind(const std::string & value, bool is_defined = true);
-    virtual void bind(double value, bool is_defined = true);
-    virtual void bind(const ustring & value, bool is_defined = true);
-    virtual void bind(int value, bool is_defined = true);
-    virtual void bind(const char * value, bool is_defined = true);
-    virtual void bind(unsigned int value, bool is_defined = true);
-    virtual void bind(const void* data, size_t len, bool is_defined = true);
-    virtual void bind(long long value, bool is_defined = true);
+    virtual void bind(bool value, bool is_defined = true) = 0;
+    virtual void bind(const std::string & value, bool is_defined = true) = 0;
+    virtual void bind(double value, bool is_defined = true) = 0;
+    virtual void bind(const ustring & value, bool is_defined = true) = 0;
+    virtual void bind(int value, bool is_defined = true) = 0;
+    virtual void bind(const char * value, bool is_defined = true) = 0;
+    virtual void bind(unsigned int value, bool is_defined = true) = 0;
+    virtual void bind(const void* data, size_t len, bool is_defined = true) = 0;
+    virtual void bind(long long value, bool is_defined = true) = 0;
 
-    virtual double getDoubleValue(int column_index);
-    virtual long long getLongLongValue(int column_index);
-    virtual ustring getBlobValue(int column_index);
-    virtual int getIntValue(int column_index);
-    virtual bool getBoolValue(int column_index);
-    virtual std::string getTextValue(int column_index);
-    virtual unsigned int getUIntValue(int column_index);
+    virtual double getDouble(int column_index) = 0;
+    virtual long long getLongLong(int column_index) = 0;
+    virtual ustring getBlob(int column_index) = 0;
+    virtual int getInt(int column_index) = 0;
+    virtual bool getBool(int column_index) = 0;
+    virtual std::string getText(int column_index) = 0;
+    virtual unsigned int getUInt(int column_index) = 0;
 
     virtual long long getLastInsertId() const = 0;
     virtual unsigned int getRowsAffected() const = 0;
