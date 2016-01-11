@@ -41,7 +41,7 @@ namespace sqldb {
     virtual unsigned int getUInt(int column_index) = 0;
 
     virtual long long getLastInsertId() const = 0;
-    virtual unsigned int getRowsAffected() const = 0;
+    virtual unsigned int getAffectedRows() const = 0;
     virtual unsigned int getNumFields() = 0;
   
     bool resultsAvailable() { return results_available; }
