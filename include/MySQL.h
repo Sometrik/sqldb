@@ -58,6 +58,7 @@ namespace sqldb {
     unsigned int getUInt(int column_index) override;
     double getDouble(int column_index) override;
     long long getLongLong(int column_index) override;
+    bool getBool(int column_index) override;
     std::string getText(int column_index) override;
     ustring getBlob(int column_index) override;
     
@@ -66,8 +67,8 @@ namespace sqldb {
     unsigned int getNumFields() { return num_bound_variables; }
     
   protected:
-    void bindNull(int index);
-    void bindData(int index, enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined = true, bool is_unsigned = false);
+    void bindNull();
+    void bindData(enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined = true, bool is_unsigned = false);
     
   private:
     MYSQL_STMT * stmt;

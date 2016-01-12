@@ -1,10 +1,15 @@
-#include "MySQL.h"
+#include <MySQL.h>
 
 #include <cassert>
+#include <iostream>
+#include <cstring>
 
 #include <mysql/errmsg.h>
 
+#include <SQLException.h>
+
 using namespace std;
+using namespace sqldb;
 
 MySQL::MySQL(bool _use_utf8) : use_utf8(_use_utf8)
 {
@@ -219,8 +224,9 @@ MySQLStatement::reset() {
   
   memset(bind_data, 0, num_bound_variables * sizeof(MYSQL_BIND));
   for (unsigned int i = 0; i < num_bound_variables; i++) {
-    bindNull(i + 1);
+    bindNull();
   } 
+  SQLStatement::reset(); // need to rereset after binds
 
   // no need to reset. just rebind parameter and execute again. not tested though
 }
@@ -253,65 +259,59 @@ MySQLStatement::next() {
 }
 
 void
-MySQLStatement::bindNull(int index) {
+MySQLStatement::bindNull() {
   int a = 0;
-  bindData(index, MYSQL_TYPE_LONG, &a, sizeof(a), true);
+  bindData(MYSQL_TYPE_LONG, &a, sizeof(a), false);
 }
 
 void
-MySQLStatement::bind(int index, int value, bool is_defined) {
+MySQLStatement::bind(int value, bool is_defined) {
   if (!is_defined) value = 0;
-  bindData(index, MYSQL_TYPE_LONG, &value, sizeof(value), is_defined);
+  bindData(MYSQL_TYPE_LONG, &value, sizeof(value), is_defined);
 }
 
 void
-MySQLStatement::bind(int index, long long value, bool is_defined) {
+MySQLStatement::bind(long long value, bool is_defined) {
   if (!is_defined) value = 0;
-  bindData(index, MYSQL_TYPE_LONGLONG, &value, sizeof(value), is_defined);
+  bindData(MYSQL_TYPE_LONGLONG, &value, sizeof(value), is_defined);
 }
 
 void
-MySQLStatement::bind(int index, unsigned int value, bool is_defined) {
+MySQLStatement::bind(unsigned int value, bool is_defined) {
   if (!is_defined) value = 0;
   unsigned int v = value;
-  bindData(index, MYSQL_TYPE_LONG, &v, sizeof(v), is_defined, true);
+  bindData(MYSQL_TYPE_LONG, &v, sizeof(v), is_defined, true);
 }
 
 void
-MySQLStatement::bind(int index, time_t value, bool is_defined) {
-  int v = is_defined ? (int)value : 0;
-  bindData(index, MYSQL_TYPE_LONG, &v, sizeof(v), is_defined);
+MySQLStatement::bind(double value, bool is_defined) {
+  bindData(MYSQL_TYPE_DOUBLE, &value, sizeof(value), is_defined);
 }
 
 void
-MySQLStatement::bind(int index, double value, bool is_defined) {
-  bindData(index, MYSQL_TYPE_DOUBLE, &value, sizeof(value), is_defined);
+MySQLStatement::bind(const char * value, bool is_defined) {
+  bindData(MYSQL_TYPE_STRING, value, strlen(value), is_defined);
 }
 
 void
-MySQLStatement::bind(int index, const char * value, bool is_defined) {
-  bindData(index, MYSQL_TYPE_STRING, value, strlen(value), is_defined);
-}
-
-void
-MySQLStatement::bind(int index, bool value, bool is_defined) {
+MySQLStatement::bind(bool value, bool is_defined) {
   int a = value ? 1 : 0;
-  bindData(index, MYSQL_TYPE_LONG, &a, sizeof(int), is_defined);
+  bindData(MYSQL_TYPE_LONG, &a, sizeof(int), is_defined);
 }
 
 void
-MySQLStatement::bind(int index, const std::string & value, bool is_defined) {
-  bindData(index, MYSQL_TYPE_STRING, value.c_str(), value.size(), is_defined);
+MySQLStatement::bind(const std::string & value, bool is_defined) {
+  bindData(MYSQL_TYPE_STRING, value.c_str(), value.size(), is_defined);
 }
 
 void
-MySQLStatement::bind(int index, const ustring & value, bool is_defined) {
-  bindData(index, MYSQL_TYPE_BLOB, value.data(), value.size(), is_defined);
+MySQLStatement::bind(const ustring & value, bool is_defined) {
+  bindData(MYSQL_TYPE_BLOB, value.data(), value.size(), is_defined);
 }
 
 void
-MySQLStatement::bind(int index, const void * data, size_t len, bool is_defined) {
-  bindData(index, MYSQL_TYPE_BLOB, data, len, is_defined);
+MySQLStatement::bind(const void * data, size_t len, bool is_defined) {
+  bindData(MYSQL_TYPE_BLOB, data, len, is_defined);
 }
 
 int
@@ -421,6 +421,11 @@ MySQLStatement::getLongLong(int column_index) {
   return a;
 }
 
+bool
+MySQLStatement::getBool(int column_index) {
+  return getInt(column_index) ? true : false;
+}
+
 string
 MySQLStatement::getText(int column_index) {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
@@ -498,7 +503,8 @@ MySQLStatement::getBlob(int column_index) {
 }
 
 void
-MySQLStatement::bindData(int index, enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined, bool is_unsigned) {
+MySQLStatement::bindData(enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined, bool is_unsigned) {
+  int index = getNextBindIndex();
   index--;
   if (index < 0 || index >= num_bound_variables) {
     throw SQLException(SQLException::BAD_BIND_INDEX, "", getQuery());
