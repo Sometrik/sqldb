@@ -41,7 +41,6 @@ namespace sqldb {
       case DATABASE_ERROR: return "Database error";
       case DATABASE_MISUSE: return "Database misuse";
       case SCHEMA_CHANGED: return "Schema changed";
-      case NOT_IMPLEMENTED: return "Not implemented";
       case BAD_BIND_INDEX: return "Bad bind index";
       case BAD_COLUMN_INDEX: return "Bad column index";
       case GET_FAILED: return "Get failed";
