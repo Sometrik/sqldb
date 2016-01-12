@@ -30,15 +30,15 @@ namespace sqldb {
     bool next() override;
     void reset() override;
 
-    void bind(int value, bool is_defined) override;
-    void bind(long long value, bool is_defined) override;
-    void bind(unsigned int value, bool is_defined) override;
-    void bind(double value, bool is_defined) override;
-    void bind(const char * value, bool is_defined) override;
-    void bind(bool value, bool is_defined) override;
-    void bind(const std::string & value, bool is_defined) override;
-    void bind(const ustring & value, bool is_defined) override;
-    void bind(const void* data, size_t len, bool is_defined) override;
+    SQLiteStatement & bind(int value, bool is_defined) override;
+    SQLiteStatement & bind(long long value, bool is_defined) override;
+    SQLiteStatement & bind(unsigned int value, bool is_defined) override;
+    SQLiteStatement & bind(double value, bool is_defined) override;
+    SQLiteStatement & bind(const char * value, bool is_defined) override;
+    SQLiteStatement & bind(bool value, bool is_defined) override;
+    SQLiteStatement & bind(const std::string & value, bool is_defined) override;
+    SQLiteStatement & bind(const ustring & value, bool is_defined) override;
+    SQLiteStatement & bind(const void* data, size_t len, bool is_defined) override;
   
     int getInt(int column_index) override;
     unsigned int getUInt(int column_index) override;

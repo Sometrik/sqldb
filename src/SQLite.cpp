@@ -165,7 +165,7 @@ SQLiteStatement::next() {
   return results_available;
 }
 
-void
+SQLiteStatement &
 SQLiteStatement::bind(int value, bool is_defined) {
   assert(stmt);
   unsigned int index = getNextBindIndex();
@@ -175,10 +175,11 @@ SQLiteStatement::bind(int value, bool is_defined) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db));
     }
   }
+  return *this;
 }
 
-void
-SQLite::bind(unsigned int value, bool is_defined) {
+SQLiteStatement &
+SQLiteStatement::bind(unsigned int value, bool is_defined) {
   assert(stmt);
   unsigned int index = getNextBindIndex();
   if (is_defined) {
@@ -187,9 +188,10 @@ SQLite::bind(unsigned int value, bool is_defined) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db));
     }
   }
+  return *this;
 }
 
-void
+SQLiteStatement &
 SQLiteStatement::bind(long long value, bool is_defined) {
   assert(stmt);
   unsigned int index = getNextBindIndex();
@@ -199,9 +201,11 @@ SQLiteStatement::bind(long long value, bool is_defined) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db));
     }
   }
+  return *this;
 }
 
-void SQLiteStatement::bind(double value, bool is_defined) {
+SQLiteStatement &
+SQLiteStatement::bind(double value, bool is_defined) {
   assert(stmt);
   unsigned int index = getNextBindIndex();
   if (is_defined) {
@@ -210,9 +214,11 @@ void SQLiteStatement::bind(double value, bool is_defined) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db));
     }
   }
+  return *this;
 }
 
-void SQLiteStatement::bind(const char * value, bool is_defined) {
+SQLiteStatement &
+SQLiteStatement::bind(const char * value, bool is_defined) {
   assert(stmt);
   unsigned int index = getNextBindIndex();
   if (is_defined) {
@@ -222,14 +228,15 @@ void SQLiteStatement::bind(const char * value, bool is_defined) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db));
     }
   }
+  return *this;
 }
 
-void
+SQLiteStatement &
 SQLiteStatement::bind(bool value, bool is_defined) {
-  bind(value ? 1 : 0, is_defined);
+  return bind(value ? 1 : 0, is_defined);
 }
     
-void
+SQLiteStatement &
 SQLiteStatement::bind(const std::string & value, bool is_defined) {
   assert(stmt);
   unsigned int index = getNextBindIndex();
@@ -239,9 +246,10 @@ SQLiteStatement::bind(const std::string & value, bool is_defined) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db));
     }
   }
+  return *this;
 }
 
-void
+SQLiteStatement &
 SQLiteStatement::bind(const ustring & value, bool is_defined) {
   assert(stmt);
   unsigned int index = getNextBindIndex();
@@ -251,9 +259,10 @@ SQLiteStatement::bind(const ustring & value, bool is_defined) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db));
     }
   }
+  return *this;
 }
 
-void
+SQLiteStatement &
 SQLiteStatement::bind(const void* data, size_t len, bool is_defined = true) {
   assert(stmt);
   unsigned int index = getNextBindIndex();
@@ -263,6 +272,7 @@ SQLiteStatement::bind(const void* data, size_t len, bool is_defined = true) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db));
     }
   }
+  return *this;
 }
 
 int
