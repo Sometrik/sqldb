@@ -22,15 +22,15 @@ namespace sqldb {
       next_bind_index = 1;
     }
 
-    virtual void bind(bool value, bool is_defined = true) = 0;
-    virtual void bind(const std::string & value, bool is_defined = true) = 0;
-    virtual void bind(double value, bool is_defined = true) = 0;
-    virtual void bind(const ustring & value, bool is_defined = true) = 0;
-    virtual void bind(int value, bool is_defined = true) = 0;
-    virtual void bind(const char * value, bool is_defined = true) = 0;
-    virtual void bind(unsigned int value, bool is_defined = true) = 0;
-    virtual void bind(const void* data, size_t len, bool is_defined = true) = 0;
-    virtual void bind(long long value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(bool value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(const std::string & value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(double value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(const ustring & value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(int value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(const char * value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(unsigned int value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(const void * data, size_t len, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(long long value, bool is_defined = true) = 0;
 
     virtual double getDouble(int column_index) = 0;
     virtual long long getLongLong(int column_index) = 0;
