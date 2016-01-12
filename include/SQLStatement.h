@@ -1,11 +1,7 @@
 #ifndef _SQLDB_SQLSTATEMENT_H_
 #define _SQLDB_SQLSTATEMENT_H_
 
-#include "SQLException.h"
-
 #include "ustring.h"
-
-#include <ctime>
 #include <string>
 
 namespace sqldb {
