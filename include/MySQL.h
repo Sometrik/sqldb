@@ -14,7 +14,7 @@
 namespace sqldb {
   class MySQL : public Connection {
   public:
-    MySQL(bool _use_utf8 = true);
+    MySQL() { }
     ~MySQL();
     
     bool connect(const std::string & host_name, int port, const std::string & user_name, const std::string & password, const std::string & db_name);    
@@ -32,7 +32,6 @@ namespace sqldb {
     MYSQL * conn = 0;
     std::string host_name, user_name, password, db_name;
     int port = 0;
-    bool use_utf8;
   };
 
   class MySQLStatement : public SQLStatement {

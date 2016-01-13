@@ -11,11 +11,6 @@
 using namespace std;
 using namespace sqldb;
 
-MySQL::MySQL(bool _use_utf8) : use_utf8(_use_utf8)
-{
-  
-}
-
 MySQL::~MySQL() {
   if (conn) mysql_close(conn);
 }
@@ -99,9 +94,7 @@ MySQL::connect() {
     return false;
   }
   
-  if (use_utf8) {
-    execute("SET NAMES utf8mb4");
-  }
+  execute("SET NAMES utf8mb4");
   
   return true;
 }
