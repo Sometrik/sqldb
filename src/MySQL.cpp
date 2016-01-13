@@ -258,60 +258,60 @@ MySQLStatement::next() {
   return results_available;
 }
 
-void
+MySQLStatement &
 MySQLStatement::bindNull() {
   int a = 0;
-  bindData(MYSQL_TYPE_LONG, &a, sizeof(a), false);
+  return bindData(MYSQL_TYPE_LONG, &a, sizeof(a), false);
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(int value, bool is_defined) {
   if (!is_defined) value = 0;
-  bindData(MYSQL_TYPE_LONG, &value, sizeof(value), is_defined);
+  return bindData(MYSQL_TYPE_LONG, &value, sizeof(value), is_defined); 
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(long long value, bool is_defined) {
   if (!is_defined) value = 0;
-  bindData(MYSQL_TYPE_LONGLONG, &value, sizeof(value), is_defined);
+  return bindData(MYSQL_TYPE_LONGLONG, &value, sizeof(value), is_defined);
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(unsigned int value, bool is_defined) {
   if (!is_defined) value = 0;
   unsigned int v = value;
-  bindData(MYSQL_TYPE_LONG, &v, sizeof(v), is_defined, true);
+  return bindData(MYSQL_TYPE_LONG, &v, sizeof(v), is_defined, true);
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(double value, bool is_defined) {
-  bindData(MYSQL_TYPE_DOUBLE, &value, sizeof(value), is_defined);
+  return bindData(MYSQL_TYPE_DOUBLE, &value, sizeof(value), is_defined);
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(const char * value, bool is_defined) {
-  bindData(MYSQL_TYPE_STRING, value, strlen(value), is_defined);
+  return bindData(MYSQL_TYPE_STRING, value, strlen(value), is_defined);
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(bool value, bool is_defined) {
   int a = value ? 1 : 0;
-  bindData(MYSQL_TYPE_LONG, &a, sizeof(int), is_defined);
+  return bindData(MYSQL_TYPE_LONG, &a, sizeof(int), is_defined);
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(const std::string & value, bool is_defined) {
-  bindData(MYSQL_TYPE_STRING, value.c_str(), value.size(), is_defined);
+  return bindData(MYSQL_TYPE_STRING, value.c_str(), value.size(), is_defined);
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(const ustring & value, bool is_defined) {
-  bindData(MYSQL_TYPE_BLOB, value.data(), value.size(), is_defined);
+  return bindData(MYSQL_TYPE_BLOB, value.data(), value.size(), is_defined);
 }
 
-void
+MySQLStatement &
 MySQLStatement::bind(const void * data, size_t len, bool is_defined) {
-  bindData(MYSQL_TYPE_BLOB, data, len, is_defined);
+  return bindData(MYSQL_TYPE_BLOB, data, len, is_defined);
 }
 
 int
@@ -502,13 +502,12 @@ MySQLStatement::getBlob(int column_index) {
   return s;
 }
 
-void
+MySQLStatement &
 MySQLStatement::bindData(enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined, bool is_unsigned) {
   int index = getNextBindIndex();
   index--;
   if (index < 0 || index >= num_bound_variables) {
     throw SQLException(SQLException::BAD_BIND_INDEX, "", getQuery());
-    return;
   }
   char * buffer;
   if (size <= MYSQL_BIND_BUFFER_SIZE) {
@@ -527,4 +526,5 @@ MySQLStatement::bindData(enum_field_types buffer_type, const void * ptr, unsigne
   } else {
     bind_data[index].is_null = &is_null;
   }
+  return *this;
 }

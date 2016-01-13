@@ -44,15 +44,15 @@ namespace sqldb {
     void reset() override;
     bool next() override;
 
-    void bind(int value, bool is_defined = true) override;
-    void bind(long long value, bool is_defined = true) override;
-    void bind(const ustring & value, bool is_defined = true) override;
-    void bind(const char * value, bool is_defined = true) override;
-    void bind(bool value, bool is_defined = true) override;
-    void bind(unsigned int value, bool is_defined = true) override;
-    void bind(const std::string & value, bool is_defined = true) override;
-    void bind(const void * data, size_t len, bool is_defined = true) override;
-    void bind(double value, bool is_defined = true) override;
+    MySQLStatement & bind(int value, bool is_defined = true) override;
+    MySQLStatement & bind(long long value, bool is_defined = true) override;
+    MySQLStatement & bind(const ustring & value, bool is_defined = true) override;
+    MySQLStatement & bind(const char * value, bool is_defined = true) override;
+    MySQLStatement & bind(bool value, bool is_defined = true) override;
+    MySQLStatement & bind(unsigned int value, bool is_defined = true) override;
+    MySQLStatement & bind(const std::string & value, bool is_defined = true) override;
+    MySQLStatement & bind(const void * data, size_t len, bool is_defined = true) override;
+    MySQLStatement & bind(double value, bool is_defined = true) override;
   
     int getInt(int column_index) override;
     unsigned int getUInt(int column_index) override;
@@ -67,8 +67,8 @@ namespace sqldb {
     unsigned int getNumFields() { return num_bound_variables; }
     
   protected:
-    void bindNull();
-    void bindData(enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined = true, bool is_unsigned = false);
+    MySQLStatement & bindNull();
+    MySQLStatement & bindData(enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined = true, bool is_unsigned = false);
     
   private:
     MYSQL_STMT * stmt;
