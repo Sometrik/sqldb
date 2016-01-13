@@ -4,6 +4,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "SQLException.h"
+
 using namespace std;
 using namespace sqldb;
 
