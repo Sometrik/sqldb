@@ -113,7 +113,9 @@ MySQL::execute(const char * query) {
   if (mysql_query(conn, query) != 0) {
     throw SQLException(SQLException::EXECUTE_FAILED, mysql_error(conn), query);
   }
-  return mysql_affected_rows(conn);
+  long long r = (long long)mysql_affected_rows(conn);
+  assert(r >= 0);
+  return (unsigned int)r;
 }
 
 MySQLStatement::MySQLStatement(MYSQL_STMT * _stmt, const std::string & _query)
