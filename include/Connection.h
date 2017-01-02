@@ -1,6 +1,8 @@
 #ifndef _SQLDB_CONNECTION_H_
 #define _SQLDB_CONNECTION_H_
 
+#include <SQLStatement.h>
+
 #include <string>
 #include <memory>
 
@@ -15,10 +17,19 @@ namespace sqldb {
     Connection & operator=(const Connection & other) = delete;
     
     virtual std::shared_ptr<sqldb::SQLStatement> prepare(const std::string & query) = 0;
-    virtual void begin();
-    virtual void commit();
-    virtual void rollback();
-    virtual unsigned int execute(const char * query);
+    virtual void begin() {
+      execute("BEGIN TRANSACTION");
+    }
+    virtual void commit() {
+      execute("COMMIT");
+    }
+    virtual void rollback() {
+      execute("ROLLBACK");
+    }
+    virtual unsigned int execute(const char * query) {
+      auto stmt = prepare(query);
+      return stmt->execute();
+    }
     virtual bool ping() { return true; }    
     
     unsigned int execute(const std::string & query) { return execute(query.c_str()); }
