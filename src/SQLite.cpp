@@ -59,7 +59,7 @@ SQLite::open(bool read_only) {
   int r = sqlite3_open_v2(db_file.c_str(), &db, flags, 0);
   if (r) {
     db = 0;
-    throw SQLException(SQLException::OPEN_FAILED);		       
+    throw SQLException(SQLException::OPEN_FAILED, sqlite3_errmsg(db));
   }
 
   if (db) {
