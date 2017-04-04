@@ -73,7 +73,7 @@ SQLite::open(bool read_only) {
 				  latin1_compare
 				  );
     if (r) {
-      fprintf(stderr, "failed to create NOCASE collation: %s\n", sqlite3_errmsg(db));
+      cerr << "failed to create NOCASE collation\n";
     }
   }
 
