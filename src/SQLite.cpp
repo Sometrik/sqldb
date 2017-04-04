@@ -58,9 +58,8 @@ SQLite::open(bool read_only) {
   }
   int r = sqlite3_open_v2(db_file.c_str(), &db, flags, 0);
   if (r) {
-    cerr << "Can't open database " << db_file << ": " << sqlite3_errmsg(db) << endl;
-    // sqlite3_close(db);
     db = 0;
+    throw SQLException(SQLException::OPEN_FAILED);		       
   }
 
   if (db) {
