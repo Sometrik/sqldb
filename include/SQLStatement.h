@@ -12,7 +12,7 @@ namespace sqldb {
 
     virtual ~SQLStatement() { }
 
-    virtual unsigned int execute() = 0;
+    virtual size_t execute() = 0;
     virtual bool next() = 0;
     virtual void reset() {
       next_bind_index = 1;
@@ -37,8 +37,8 @@ namespace sqldb {
     virtual unsigned int getUInt(int column_index) = 0;
 
     virtual long long getLastInsertId() const = 0;
-    virtual unsigned int getAffectedRows() const = 0;
-    virtual unsigned int getNumFields() = 0;
+    virtual size_t getAffectedRows() const = 0;
+    virtual size_t getNumFields() = 0;
   
     bool resultsAvailable() { return results_available; }
     const std::string & getQuery() const { return query; }

@@ -26,7 +26,7 @@ namespace sqldb {
     SQLiteStatement(sqlite3 * _db, sqlite3_stmt * _stmt);
     ~SQLiteStatement();
   
-    unsigned int execute() override;
+    size_t execute() override;
     bool next() override;
     void reset() override;
 
@@ -48,10 +48,10 @@ namespace sqldb {
     ustring getBlob(int column_index) override;
     bool getBool(int column_index) override;
 
-    unsigned int getNumFields() override;
+    size_t getNumFields() override;
 
     long long getLastInsertId() const override;
-    unsigned int getAffectedRows() const override;
+    size_t getAffectedRows() const override;
     
   protected:
     void step();

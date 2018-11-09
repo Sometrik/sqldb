@@ -26,7 +26,7 @@ namespace sqldb {
     void commit() override;
     void rollback() override;
 
-    unsigned int execute(const char * query) override;
+    size_t execute(const char * query) override;
 
   private:
     MYSQL * conn = 0;
@@ -39,7 +39,7 @@ namespace sqldb {
     MySQLStatement(MYSQL_STMT * _stmt, const std::string & _query);
     ~MySQLStatement();
     
-    unsigned int execute() override;
+    size_t execute() override;
     void reset() override;
     bool next() override;
 
@@ -61,13 +61,13 @@ namespace sqldb {
     std::string getText(int column_index) override;
     ustring getBlob(int column_index) override;
     
-    long long getLastInsertId() const { return last_insert_id; }
-    unsigned int getAffectedRows() const { return rows_affected; }
-    unsigned int getNumFields() { return num_bound_variables; }
+    long long getLastInsertId() const override { return last_insert_id; }
+    size_t getAffectedRows() const override { return rows_affected; }
+    size_t getNumFields() override { return num_bound_variables; }
     
   protected:
     MySQLStatement & bindNull();
-    MySQLStatement & bindData(enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined = true, bool is_unsigned = false);
+    MySQLStatement & bindData(enum_field_types buffer_type, const void * ptr, size_t size, bool is_defined = true, bool is_unsigned = false);
     
   private:
     MYSQL_STMT * stmt;

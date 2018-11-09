@@ -26,13 +26,13 @@ namespace sqldb {
     virtual void rollback() {
       execute("ROLLBACK");
     }
-    virtual unsigned int execute(const char * query) {
+    virtual size_t execute(const char * query) {
       auto stmt = prepare(query);
       return stmt->execute();
     }
     virtual bool ping() { return true; }    
     
-    unsigned int execute(const std::string & query) { return execute(query.c_str()); }
+    size_t execute(const std::string & query) { return execute(query.c_str()); }
   };
 };
 

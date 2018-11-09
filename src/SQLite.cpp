@@ -102,7 +102,7 @@ SQLiteStatement::~SQLiteStatement() {
   if (stmt) sqlite3_finalize(stmt);
 }
 
-unsigned int
+size_t
 SQLiteStatement::execute() {
   step();
   return getAffectedRows();
@@ -342,7 +342,7 @@ SQLiteStatement::getBlob(int column_index) {
   }
 }
 
-unsigned int
+size_t
 SQLiteStatement::getNumFields() {
   assert(stmt);
   return sqlite3_column_count(stmt);
@@ -353,7 +353,7 @@ SQLiteStatement::getLastInsertId() const {
   return sqlite3_last_insert_rowid(db);
 }
 
-unsigned int
+size_t
 SQLiteStatement::getAffectedRows() const {
   return sqlite3_changes(db);
 }

@@ -108,7 +108,7 @@ MySQL::ping() {
   }
 }
 
-unsigned int
+size_t
 MySQL::execute(const char * query) {
   if (mysql_query(conn, query) != 0) {
     throw SQLException(SQLException::EXECUTE_FAILED, mysql_error(conn), query);
@@ -143,7 +143,7 @@ MySQLStatement::~MySQLStatement() {
   }
 }
 
-unsigned int
+size_t
 MySQLStatement::execute() {
   is_query_executed = true;
   has_result_set = false;
@@ -158,12 +158,15 @@ MySQLStatement::execute() {
   if (mysql_stmt_execute(stmt) != 0) {
     throw SQLException(SQLException::EXECUTE_FAILED, mysql_stmt_error(stmt), getQuery());
   }
-  
-  rows_affected = mysql_stmt_affected_rows(stmt);
+
+  int a = mysql_stmt_affected_rows(stmt);
+  if (a > 0) {
+    rows_affected = a;
+  } else {
+    rows_affected = 0;
+  }
   last_insert_id = mysql_stmt_insert_id(stmt);
-  
-  cerr << "rows affected = " << rows_affected << ", last_insert_id = " << last_insert_id << "\n";
-  
+    
   // NULL if no metadata / results
   if (prepare_meta_result) {
     // Get total columns in the query
@@ -498,7 +501,7 @@ MySQLStatement::getBlob(int column_index) {
 }
 
 MySQLStatement &
-MySQLStatement::bindData(enum_field_types buffer_type, const void * ptr, unsigned int size, bool is_defined, bool is_unsigned) {
+MySQLStatement::bindData(enum_field_types buffer_type, const void * ptr, size_t size, bool is_defined, bool is_unsigned) {
   int index = getNextBindIndex();
   index--;
   if (index < 0 || index >= num_bound_variables) {
