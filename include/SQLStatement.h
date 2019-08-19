@@ -36,6 +36,8 @@ namespace sqldb {
     virtual std::string getText(int column_index) = 0;
     virtual unsigned int getUInt(int column_index) = 0;
 
+    virtual bool isNull(int column_index) = 0;
+
     virtual long long getLastInsertId() const = 0;
     virtual size_t getAffectedRows() const = 0;
     virtual size_t getNumFields() = 0;

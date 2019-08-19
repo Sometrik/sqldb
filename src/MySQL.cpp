@@ -372,8 +372,8 @@ MySQLStatement::getDouble(int column_index) {
   double a = 0;
    
   if (bind_is_null[column_index]) {
-    
-  } else if (bind_length[column_index]) {
+    // cerr << "null value\n";
+  } else if (1 || bind_length[column_index]) {
     long unsigned int dummy1;
     my_bool dummy2;
     MYSQL_BIND b;
@@ -386,6 +386,8 @@ MySQLStatement::getDouble(int column_index) {
     if (mysql_stmt_fetch_column(stmt, &b, column_index, 0) != 0) {
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt), getQuery());
     }
+  } else {
+    // cerr << "empty value\n";
   }
 
   return a;
@@ -498,6 +500,12 @@ MySQLStatement::getBlob(int column_index) {
   }
 
   return s;
+}
+
+bool
+MySQLStatement::isNull(int column_index) {
+  if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
+  return bind_is_null[column_index];
 }
 
 MySQLStatement &

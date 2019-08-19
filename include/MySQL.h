@@ -60,7 +60,9 @@ namespace sqldb {
     bool getBool(int column_index) override;
     std::string getText(int column_index) override;
     ustring getBlob(int column_index) override;
-    
+
+    bool isNull(int column_index) override;
+
     long long getLastInsertId() const override { return last_insert_id; }
     size_t getAffectedRows() const override { return rows_affected; }
     size_t getNumFields() override { return num_bound_variables; }
