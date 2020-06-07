@@ -28,6 +28,8 @@ namespace sqldb {
 
     size_t execute(const char * query) override;
 
+    bool isConnected() const { return conn != 0; }
+
   private:
     MYSQL * conn = 0;
     std::string host_name, user_name, password, db_name;

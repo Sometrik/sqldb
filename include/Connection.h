@@ -31,8 +31,9 @@ namespace sqldb {
       return stmt->execute();
     }
     virtual bool ping() { return true; }    
+    virtual bool isConnected() const = 0;
     
-    size_t execute(const std::string & query) { return execute(query.c_str()); }
+    size_t execute(const std::string & query) { return execute(query.c_str()); }    
   };
 };
 
