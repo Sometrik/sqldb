@@ -26,7 +26,7 @@ namespace sqldb {
     void commit() override;
     void rollback() override;
 
-    size_t execute(const char * query) override;
+    size_t execute(const std::string & query) override;
 
     bool isConnected() const { return conn != 0; }
 
@@ -55,12 +55,12 @@ namespace sqldb {
     MySQLStatement & bind(const void * data, size_t len, bool is_defined = true) override;
     MySQLStatement & bind(double value, bool is_defined = true) override;
   
-    int getInt(int column_index) override;
-    unsigned int getUInt(int column_index) override;
-    double getDouble(int column_index) override;
-    long long getLongLong(int column_index) override;
-    bool getBool(int column_index) override;
-    std::string getText(int column_index) override;
+    int getInt(int column_index, int default_value = 0) override;
+    unsigned int getUInt(int column_index, unsigned int default_value = 0) override;
+    double getDouble(int column_index, double default_value = 0.0) override;
+    long long getLongLong(int column_index, long long default_value = 0LL) override;
+    bool getBool(int column_index, bool default_value = false) override;
+    std::string getText(int column_index, const std::string default_value = "") override;
     ustring getBlob(int column_index) override;
 
     bool isNull(int column_index) override;

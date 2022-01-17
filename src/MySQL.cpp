@@ -32,6 +32,7 @@ MySQL::commit() {
 
 void
 MySQL::rollback() {
+  cerr << "rollback()\n";
   if (mysql_rollback(conn) != 0) {
     mysql_autocommit(conn, 1); // enable autocommit
     throw SQLException(SQLException::ROLLBACK_FAILED);
@@ -109,8 +110,8 @@ MySQL::ping() {
 }
 
 size_t
-MySQL::execute(const char * query) {
-  if (mysql_query(conn, query) != 0) {
+MySQL::execute(const std::string & query) {
+  if (mysql_query(conn, query.c_str()) != 0) {
     throw SQLException(SQLException::EXECUTE_FAILED, mysql_error(conn), query);
   }
   long long r = (long long)mysql_affected_rows(conn);
@@ -313,12 +314,12 @@ MySQLStatement::bind(const void * data, size_t len, bool is_defined) {
 }
 
 int
-MySQLStatement::getInt(int column_index) {
+MySQLStatement::getInt(int column_index, int default_value) {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
 
   assert(stmt);
   
-  long a = 0;
+  long a = default_value;
    
   if (bind_is_null[column_index]) {
 
@@ -341,10 +342,10 @@ MySQLStatement::getInt(int column_index) {
 }
 
 unsigned int
-MySQLStatement::getUInt(int column_index) {
+MySQLStatement::getUInt(int column_index, unsigned int default_value) {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
   assert(stmt);
-  unsigned long a = 0;
+  unsigned long a = default_value;
   if (bind_is_null[column_index]) {
   } else if (bind_length[column_index]) {
     long unsigned int dummy1;
@@ -366,10 +367,10 @@ MySQLStatement::getUInt(int column_index) {
 }
 
 double
-MySQLStatement::getDouble(int column_index) {
+MySQLStatement::getDouble(int column_index, double default_value) {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
   assert(stmt);
-  double a = 0;
+  double a = default_value;
    
   if (bind_is_null[column_index]) {
     // cerr << "null value\n";
@@ -394,12 +395,12 @@ MySQLStatement::getDouble(int column_index) {
 }
 
 long long
-MySQLStatement::getLongLong(int column_index) {
+MySQLStatement::getLongLong(int column_index, long long default_value) {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
 
   assert(stmt);
   
-  long long a = 0;
+  long long a = default_value;
    
   if (bind_is_null[column_index]) {
 
@@ -422,19 +423,19 @@ MySQLStatement::getLongLong(int column_index) {
 }
 
 bool
-MySQLStatement::getBool(int column_index) {
-  return getInt(column_index) ? true : false;
+MySQLStatement::getBool(int column_index, bool default_value) {
+  return getInt(column_index, default_value ? 1 : 0) ? true : false;
 }
 
 string
-MySQLStatement::getText(int column_index) {
+MySQLStatement::getText(int column_index, const std::string default_value) {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
 
   assert(stmt);
   
   unsigned long int len = (int)bind_length[column_index];
 
-  string s;
+  string s = default_value;
   
   if (bind_is_null[column_index]) {
 

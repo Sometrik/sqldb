@@ -28,13 +28,13 @@ namespace sqldb {
     virtual SQLStatement & bind(const void * data, size_t len, bool is_defined = true) = 0;
     virtual SQLStatement & bind(long long value, bool is_defined = true) = 0;
 
-    virtual double getDouble(int column_index) = 0;
-    virtual long long getLongLong(int column_index) = 0;
+    virtual double getDouble(int column_index, double default_value = 0.0) = 0;
+    virtual long long getLongLong(int column_index, long long default_value = 0LL) = 0;
     virtual ustring getBlob(int column_index) = 0;
-    virtual int getInt(int column_index) = 0;
-    virtual bool getBool(int column_index) = 0;
-    virtual std::string getText(int column_index) = 0;
-    virtual unsigned int getUInt(int column_index) = 0;
+    virtual int getInt(int column_index, int default_value = 0) = 0;
+    virtual bool getBool(int column_index, bool default_value = false) = 0;
+    virtual std::string getText(int column_index, const std::string default_value = "") = 0;
+    virtual unsigned int getUInt(int column_index, unsigned int default_value = 0) = 0;
 
     virtual bool isNull(int column_index) = 0;
 
