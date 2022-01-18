@@ -4,8 +4,6 @@
 #include <iostream>
 #include <cstring>
 
-#include <mysql/errmsg.h>
-
 #include <SQLException.h>
 
 using namespace std;
