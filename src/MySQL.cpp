@@ -420,11 +420,6 @@ MySQLStatement::getLongLong(int column_index, long long default_value) {
   return a;
 }
 
-bool
-MySQLStatement::getBool(int column_index, bool default_value) {
-  return getInt(column_index, default_value ? 1 : 0) ? true : false;
-}
-
 string
 MySQLStatement::getText(int column_index, const std::string default_value) {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
@@ -438,26 +433,23 @@ MySQLStatement::getText(int column_index, const std::string default_value) {
   if (bind_is_null[column_index]) {
 
   } else if (len) {
-    char * tmp = new char[len];
+    auto tmp = make_unique<char[]>(len);
     
     long unsigned int dummy1;
     my_bool dummy2;
     MYSQL_BIND b;
     memset(&b, 0, sizeof(MYSQL_BIND));
     b.buffer_type = MYSQL_TYPE_STRING;
-    b.buffer = tmp;  
+    b.buffer = tmp.get();
     b.buffer_length = len;
     b.length = &dummy1; 
     b.is_null = &dummy2;
     
     if (mysql_stmt_fetch_column(stmt, &b, column_index, 0) != 0) {
-      delete[] tmp;
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt), getQuery());
     }
 	
     s = string(tmp, len);
-    
-    delete[] tmp;
   }
   
   return s;
@@ -476,7 +468,7 @@ MySQLStatement::getBlob(int column_index) {
   if (bind_is_null[column_index]) {
 
   } else if (len) {
-    char * tmp = new char[len];
+    auto tmp = make_unique<char[]>(len);
     
     long unsigned int dummy1;
     my_bool dummy2;
@@ -484,18 +476,15 @@ MySQLStatement::getBlob(int column_index) {
 
     memset(&b, 0, sizeof(MYSQL_BIND));
     b.buffer_type = MYSQL_TYPE_BLOB;
-    b.buffer = tmp;  
+    b.buffer = tmp.get();
     b.buffer_length = len;
     b.length = &dummy1; 
     b.is_null = &dummy2;
     
     if (mysql_stmt_fetch_column(stmt, &b, column_index, 0) != 0) {
-      delete[] tmp;
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt), getQuery());
     }
     s = ustring((unsigned char *)tmp, len);
-    
-    delete[] tmp;
   }
 
   return s;
