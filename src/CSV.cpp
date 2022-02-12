@@ -35,35 +35,36 @@ CSV::CSV(std::string csv_file) : csv_file_(move(csv_file)) {
   cerr << "opening " << csv_file_ << "\n";
   
   in_ = fopen(csv_file_.c_str(), "r");
-  if (!in_) {
+
+  if (in_) {
+    fseek(in_, 0, SEEK_END);
+    total_size_ = ftell(in_);
+    fseek(in_, 0, SEEK_SET);
+    
+    cerr << "getting header\n";
+    
+    string s = get_record();
+    
+    if (delimiter_ == 0) {
+      size_t best_n = 0;
+      for (int i = 0; i < 3; i++) {
+	char d;
+	if (i == 0) d = ',';
+	else if (i == 1) d = ';';
+	else d = '\t';
+	auto tmp = split(s, d);
+	auto n = tmp.size();
+	if (n > best_n) {
+	  best_n = n;
+	  delimiter_ = d;
+	}
+      }
+      cerr << "delimiter = " << delimiter_ << "\n";
+    }
+    header_row_ = split(s, delimiter_);
+  } else {
     cerr << "failed to open\n";
   }
-
-  fseek(in_, 0, SEEK_END);
-  total_size_ = ftell(in_);
-  fseek(in_, 0, SEEK_SET);
-
-  cerr << "getting header\n";
-
-  string s = get_record();
-
-  if (delimiter_ == 0) {
-    size_t best_n = 0;
-    for (int i = 0; i < 3; i++) {
-      char d;
-      if (i == 0) d = ',';
-      else if (i == 1) d = ';';
-      else d = '\t';
-      auto tmp = split(s, d);
-      auto n = tmp.size();
-      if (n > best_n) {
-	best_n = n;
-	delimiter_ = d;
-      }
-    }
-    cerr << "delimiter = " << delimiter_ << "\n";
-  }
-  header_row_ = split(s, delimiter_);
 }
 
 CSV::CSV(const CSV & other) 
