@@ -27,6 +27,7 @@ namespace sqldb {
     }
     void set(int column_idx, int value) { set(column_idx, std::to_string(value)); }
     void set(int column_idx, long long value) { set(column_idx, std::to_string(value)); }
+    void set(int column_idx, float value) { set(column_idx, std::to_string(value)); }
     
     bool next() override {
       if (current_row_idx_ + 1 < data_.size()) {
@@ -93,6 +94,8 @@ namespace sqldb {
 	} while (other.next());
       }
     }
+
+    bool hasExactSize() const override { return true; }
 
   private:
     std::vector<std::vector<std::string> > data_;

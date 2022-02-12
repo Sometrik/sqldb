@@ -20,6 +20,7 @@ namespace sqldb {
     virtual int getNumRows() const = 0;
     virtual bool next() = 0;
     virtual bool seek(int row) { return false; }
+    virtual bool hasExactSize() const { return false; }
     
     virtual std::string getColumnName(int column_index) const { return ""; }
     
