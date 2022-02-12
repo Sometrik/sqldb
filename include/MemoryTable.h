@@ -38,13 +38,13 @@ namespace sqldb {
       }
     }
         
-    std::string getText(int column_index, const std::string default_value = "") override {
+    std::string getText(int column_index, std::string default_value) override {
       if (column_index >= 0) {
 	auto idx = static_cast<size_t>(column_index);
 	auto & row = data_[current_row_idx_];
 	if (idx < row.size()) return row[idx];
       }
-      return move(default_value);    
+      return std::move(default_value);    
     }
     
     ustring getBlob(int column_index) override {
