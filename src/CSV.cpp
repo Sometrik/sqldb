@@ -12,7 +12,9 @@ static inline vector<string> split(const string & line, char delimiter) {
     size_t i0 = 0, i = 0;
     bool in_quote = false;
     string current;
-    for ( ; i < line.size(); i++) {
+    size_t n = line.size();
+    while (n >= 1 && line[n - 1] == '\r') n--; // trim carriage returns
+    for ( ; i < n; i++) {
       auto c = line[i];
       if (!in_quote && c == '"') in_quote = true;
       else if (in_quote) {
