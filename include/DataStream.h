@@ -7,6 +7,13 @@
 #include <memory>
 
 namespace sqldb {
+  enum class ColumnType {
+    UNDEF = 0,
+    INT,
+    TEXT,
+    DATETIME
+  };
+  
   class DataStream {
   public:
     DataStream() { }
@@ -21,7 +28,10 @@ namespace sqldb {
     virtual bool next() = 0;
     virtual bool seek(int row) { return false; }
     virtual bool hasExactSize() const { return false; }
-    
+
+    virtual ColumnType getColumnType(int column_index) const {
+      return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
+    }
     virtual std::string getColumnName(int column_index) const { return ""; }
     
     virtual bool getBool(int column_index, bool default_value) {

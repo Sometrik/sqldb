@@ -12,8 +12,10 @@ namespace sqldb {
     MemoryTable() { }
     
     std::unique_ptr<DataStream> copy() const override { return std::make_unique<MemoryTable>(*this); }
-    
-    void addColumn(std::string name) { header_row_.push_back(std::move(name)); }
+
+    void addIntColumn(std::string name) { header_row_.push_back(std::pair(ColumnType::INT, std::move(name))); }
+    void addDateTimeColumn(std::string name) { header_row_.push_back(std::pair(ColumnType::DATETIME, std::move(name))); }
+    void addColumn(std::string name) { header_row_.push_back(std::pair(ColumnType::TEXT, std::move(name))); }
     void addRow() {
       data_.push_back(std::vector<std::string>());
       current_row_idx_ = data_.size() - 1;
@@ -52,10 +54,15 @@ namespace sqldb {
     }
     int getNumFields() const override { return static_cast<int>(header_row_.size()); }
     int getNumRows() const override { return static_cast<int>(data_.size()); }
-    
+
+    ColumnType getColumnType(int column_index) const override {
+      auto idx = static_cast<size_t>(column_index);
+      return idx < header_row_.size() ? header_row_[idx].first : ColumnType::UNDEF;
+    }
+
     std::string getColumnName(int column_index) const {
       auto idx = static_cast<size_t>(column_index);
-      return idx < header_row_.size() ? header_row_[idx] : "";
+      return idx < header_row_.size() ? header_row_[idx].second : "";
     }
     
     bool isNull(int column_index) const override {
@@ -80,7 +87,7 @@ namespace sqldb {
       // FIXME
       header_row_.clear();
       for (int i = 0; i < other.getNumFields(); i++) {
-	header_row_.push_back(other.getColumnName(i));
+	header_row_.push_back(std::pair(other.getColumnType(i), other.getColumnName(i)));
       }
 
       if (other.seek(0)) {
@@ -100,7 +107,7 @@ namespace sqldb {
   private:
     std::vector<std::vector<std::string> > data_;
     size_t current_row_idx_ = 0;
-    std::vector<std::string> header_row_;    
+    std::vector<std::pair<ColumnType, std::string> > header_row_;
   };
 };
 
