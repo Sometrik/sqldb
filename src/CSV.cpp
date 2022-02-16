@@ -9,14 +9,15 @@ static inline vector<string> split(const string & line, char delimiter) {
   vector<string> r;
   
   if (!line.empty()) {
-    size_t i0 = 0, i = 0;
+    size_t i = 0;
     bool in_quote = false;
     string current;
     size_t n = line.size();
-    while (n >= 1 && line[n - 1] == '\r') n--; // trim carriage returns
     for ( ; i < n; i++) {
       auto c = line[i];
-      if (!in_quote && c == '"') in_quote = true;
+      if (c == '\r') {
+	// ignore carriage returns
+      } else if (!in_quote && c == '"') in_quote = true;
       else if (in_quote) {
 	if (c == '\\') current += line[++i];
 	else if (c == '"') in_quote = false;
