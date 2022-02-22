@@ -28,6 +28,7 @@ public:
   
   int getInt(int column_index, int default_value = 0) override;
   double getDouble(int column_index, double default_value = 0.0) override;
+  float getFloat(int column_index, float default_value = 0.0) override;
   long long getLongLong(int column_index, long long default_value = 0) override;
   std::string getText(int column_index, std::string default_value) override;
   ustring getBlob(int column_index) override;
@@ -44,8 +45,8 @@ protected:
   void step();
     
 private:
-  sqlite3_stmt * stmt_;
   sqlite3 * db_;
+  sqlite3_stmt * stmt_;
   int num_rows_ = 0;
 };
 
@@ -312,6 +313,14 @@ double
 SQLiteStatement::getDouble(int column_index, double default_value) {
   if (!isNull(column_index)) {
     return sqlite3_column_double(stmt_, column_index);
+  }
+  return default_value;
+}
+
+float
+SQLiteStatement::getFloat(int column_index, float default_value) {
+  if (!isNull(column_index)) {
+    return static_cast<float>(sqlite3_column_double(stmt_, column_index));
   }
   return default_value;
 }

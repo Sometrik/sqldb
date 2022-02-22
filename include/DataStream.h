@@ -10,8 +10,10 @@ namespace sqldb {
   enum class ColumnType {
     UNDEF = 0,
     INT,
+    INT64,
     TEXT,
-    DATETIME
+    DATETIME,
+    DOUBLE
   };
   
   class DataStream {
@@ -41,6 +43,13 @@ namespace sqldb {
       auto s = getText(column_index);
       if (!s.empty()) {
 	try { return stof(s); } catch (...) { }
+      }
+      return default_value;
+    }
+    virtual float getFloat(int column_index, float default_value = 0.0f) {
+      auto s = getText(column_index);
+      if (!s.empty()) {
+	try { return static_cast<float>(stof(s)); } catch (...) { }
       }
       return default_value;
     }
