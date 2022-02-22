@@ -37,7 +37,7 @@ static inline vector<string> split(const string & line, char delimiter) {
 CSV::CSV(std::string csv_file) : csv_file_(move(csv_file)) {
   cerr << "opening " << csv_file_ << "\n";
   
-  in_ = fopen(csv_file_.c_str(), "r");
+  in_ = fopen(csv_file_.c_str(), "rb");
 
   if (in_) {
     fseek(in_, 0, SEEK_END);
