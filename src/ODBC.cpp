@@ -113,7 +113,7 @@ ODBC::connect() {
   return true;
 }
 
-std::shared_ptr<ODBCStatement>
+std::unique_ptr<ODBCStatement>
 ODBC::prepare(const string & query) {
   clearBoundData();
 

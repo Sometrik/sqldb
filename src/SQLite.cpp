@@ -119,7 +119,7 @@ SQLite::open(bool read_only) {
   return true;
 }
 
-std::shared_ptr<sqldb::SQLStatement>
+std::unique_ptr<sqldb::SQLStatement>
 SQLite::prepare(const string & query) {
   if (!db_) {
     throw SQLException(SQLException::PREPARE_FAILED);
@@ -130,7 +130,7 @@ SQLite::prepare(const string & query) {
     throw SQLException(SQLException::PREPARE_FAILED, sqlite3_errmsg(db_));
   }
   assert(stmt);  
-  return std::make_shared<SQLiteStatement>(db_, stmt);
+  return std::make_unique<SQLiteStatement>(db_, stmt);
 }
 
 SQLiteStatement::SQLiteStatement(sqlite3 * db, sqlite3_stmt * stmt) : db_(db), stmt_(stmt) {

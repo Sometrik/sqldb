@@ -16,7 +16,7 @@ namespace sqldb {
     virtual ~Connection() { }
     Connection & operator=(const Connection & other) = delete;
     
-    virtual std::shared_ptr<sqldb::SQLStatement> prepare(const std::string & query) = 0;
+    virtual std::unique_ptr<sqldb::SQLStatement> prepare(const std::string & query) = 0;
     virtual void begin() {
       execute("BEGIN TRANSACTION");
     }

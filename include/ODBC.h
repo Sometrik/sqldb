@@ -15,7 +15,7 @@ namespace sqldb {
 
     bool connect();
 	
-    std::shared_ptr<SQLStatement> prepare(const string & query);
+    std::unique_ptr<SQLStatement> prepare(const string & query);
       
     void commit() override;
     void rollback() override;

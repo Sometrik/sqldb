@@ -39,7 +39,7 @@ MySQL::rollback() {
   }
 }
 
-std::shared_ptr<SQLStatement>
+std::unique_ptr<SQLStatement>
 MySQL::prepare(const std::string & query) {
   if (!conn) {
     throw SQLException(SQLException::PREPARE_FAILED, "Not connected", query);
@@ -62,7 +62,7 @@ MySQL::prepare(const std::string & query) {
     }
     break;
   }
-  return std::make_shared<MySQLStatement>(stmt, query);
+  return std::make_unique<MySQLStatement>(stmt, query);
 }
 
 bool

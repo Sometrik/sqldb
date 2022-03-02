@@ -12,7 +12,7 @@ namespace sqldb {
     SQLite(const std::string & db_file, bool read_only = false);
     ~SQLite();
   
-    std::shared_ptr<sqldb::SQLStatement> prepare(const std::string & query) override;
+    std::unique_ptr<sqldb::SQLStatement> prepare(const std::string & query) override;
     bool isConnected() const { return true; }
     
   private:
