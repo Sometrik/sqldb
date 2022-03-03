@@ -11,7 +11,7 @@ using namespace sqldb;
 
 class SQLiteStatement : public SQLStatement {
 public:
-  SQLiteStatement(sqlite3 * _db, sqlite3_stmt * _stmt);
+  SQLiteStatement(sqlite3 * db, sqlite3_stmt * stmt);
   ~SQLiteStatement();
   
   size_t execute() override;
@@ -40,7 +40,15 @@ public:
 
   long long getLastInsertId() const override;
   size_t getAffectedRows() const override;
-    
+
+  std::string getColumnName(int column_index) const override {
+    if (column_index >= 0 && column_index < static_cast<int>(column_names_.size())) {
+      return column_names_[column_index];
+    } else {
+      return "";
+    }
+  }
+
 protected:
   void step();
     
@@ -48,12 +56,21 @@ private:
   sqlite3 * db_;
   sqlite3_stmt * stmt_;
   int num_rows_ = 0;
+  vector<const char *> column_names_;
 };
 
-SQLite::SQLite(const string & db_file, bool read_only) : db_file_(db_file)
+SQLite::SQLite(const string & db_file, bool read_only) : db_file_(db_file), read_only_(read_only)
 {
-  open(read_only);
+  open();
 }
+
+SQLite::SQLite(const SQLite & other) : db_file_(other.db_file_), read_only_(other.read_only_)
+{
+  open();
+}
+
+SQLite::SQLite(SQLite && other)
+  : db_file_(std::move(other.db_file_)), db_(std::exchange(other.db_, nullptr)), read_only_(other.read_only_) { }
 
 SQLite::~SQLite() {
   if (db_) {
@@ -87,11 +104,11 @@ static int latin1_compare(void * arg, int len1, const void * ptr1, int len2, con
 }
 
 bool
-SQLite::open(bool read_only) {
+SQLite::open() {
   int flags = 0;
   if (db_file_.empty()) {
     flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-  } else if (read_only) {
+  } else if (read_only_) {
     flags = SQLITE_OPEN_READONLY;
   } else {
     flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
@@ -136,6 +153,10 @@ SQLite::prepare(const string & query) {
 SQLiteStatement::SQLiteStatement(sqlite3 * db, sqlite3_stmt * stmt) : db_(db), stmt_(stmt) {
   assert(db_);
   assert(stmt_);
+
+  for (int i = 0, n = getNumFields(); i < n; i++) {
+    column_names_.push_back(sqlite3_column_name(stmt_, i));
+  }
 }
 
 SQLiteStatement::~SQLiteStatement() {
