@@ -13,12 +13,10 @@ namespace sqldb {
     
     std::unique_ptr<DataStream> copy() const override { return std::make_unique<MemoryTable>(*this); }
 
-    void addIntColumn(std::string name) { header_row_.push_back(std::pair(ColumnType::INT, std::move(name))); }
-    void addInt64Column(std::string name) { header_row_.push_back(std::pair(ColumnType::INT64, std::move(name))); }
-    void addDateTimeColumn(std::string name) { header_row_.push_back(std::pair(ColumnType::DATETIME, std::move(name))); }
-    void addColumn(std::string name) { header_row_.push_back(std::pair(ColumnType::TEXT, std::move(name))); }
-    void addDoubleColumn(std::string name) { header_row_.push_back(std::pair(ColumnType::DOUBLE, std::move(name))); }
-    void addURLColumn(std::string name) { header_row_.push_back(std::pair(ColumnType::URL, std::move(name))); }
+    void addColumn(std::string name, sqldb::ColumnType type) override {
+      header_row_.push_back(std::pair(type, std::move(name)));
+    }
+
     void addRow() {
       data_.push_back(std::vector<std::string>());
       current_row_idx_ = data_.size() - 1;

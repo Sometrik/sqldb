@@ -78,9 +78,13 @@ namespace sqldb {
       return std::unique_ptr<DataStream>(nullptr);
     }
 
-    virtual void append(DataStream & other) {
+    virtual void addColumn(std::string name, sqldb::ColumnType type) {
       // throw exception
     }
+
+    virtual void append(DataStream & other) {
+      // throw exception
+    }    
 			
     std::string getText(int column_index) { return getText(column_index, ""); }
 
@@ -102,6 +106,13 @@ namespace sqldb {
       }
       return r;
     }
+    
+    void addIntColumn(std::string name) { addColumn(std::move(name), ColumnType::INT); }
+    void addInt64Column(std::string name) { addColumn(std::move(name), ColumnType::INT64); }
+    void addDateTimeColumn(std::string name) { addColumn(std::move(name), ColumnType::DATETIME); }
+    void addTextColumn(std::string name) { addColumn(std::move(name), ColumnType::TEXT); }
+    void addDoubleColumn(std::string name) { addColumn(std::move(name), ColumnType::DOUBLE); }
+    void addURLColumn(std::string name) { addColumn(std::move(name), ColumnType::URL); }
   };
 };
 
