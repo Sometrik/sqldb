@@ -31,8 +31,8 @@ namespace sqldb {
     virtual int getNumFields() const = 0;
     virtual int getNumRows() const = 0;
     virtual bool next() = 0;
-    virtual bool seek(int row) { return false; }
-    virtual bool hasExactSize() const { return false; }
+    virtual bool seekBegin() { return false; }
+    virtual bool seek(const std::string & key) { return false; }
 
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
@@ -84,7 +84,9 @@ namespace sqldb {
 
     virtual void append(DataStream & other) {
       // throw exception
-    }    
+    }
+
+    virtual std::string getRowKey() const { return ""; }
 			
     std::string getText(int column_index) { return getText(column_index, ""); }
 
