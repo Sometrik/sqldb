@@ -5,11 +5,12 @@
 
 #include <vector>
 #include <string>
+#include <map>
 
 namespace sqldb {
   class MemoryTable : public DataStream {
   public:
-    MemoryTable() { }
+    MemoryTable() : it_(data_.end()) { }
     
     std::unique_ptr<DataStream> copy() const override { return std::make_unique<MemoryTable>(*this); }
 
@@ -17,13 +18,16 @@ namespace sqldb {
       header_row_.push_back(std::pair(type, std::move(name)));
     }
 
-    void addRow() {
-      data_.push_back(std::vector<std::string>());
-      current_row_idx_ = data_.size() - 1;
+    void addRow(const std::string & key) {
+      it_ = data_.find(key);
+      if (it_ == data_.end()) {
+	data_[key] = std::vector<std::string>();
+	it_ = data_.find(key);
+      }
     }
     void set(int column_idx, std::string value) {
-      if (current_row_idx_ < data_.size()) {
-	auto & row = data_[current_row_idx_];
+      if (it_ != data_.end()) {
+	auto & row = it_->second;
 	while (column_idx >= static_cast<int>(row.size())) row.push_back("");
 	row[column_idx] = std::move(value);
       }
@@ -33,18 +37,17 @@ namespace sqldb {
     void set(int column_idx, float value) { set(column_idx, std::to_string(value)); }
     
     bool next() override {
-      if (current_row_idx_ + 1 < data_.size()) {
-	current_row_idx_++;
-	return true;
+      if (it_ != data_.end()) {
+	return ++it_ != data_.end();
       } else {
 	return false;
       }
     }
         
     std::string getText(int column_index, std::string default_value) override {
-      if (column_index >= 0) {
+      if (column_index >= 0 && it_ != data_.end()) {
 	auto idx = static_cast<size_t>(column_index);
-	auto & row = data_[current_row_idx_];
+	auto & row = it_->second;
 	if (idx < row.size()) return row[idx];
       }
       return std::move(default_value);    
@@ -67,21 +70,22 @@ namespace sqldb {
     }
     
     bool isNull(int column_index) const override {
-      if (column_index >= 0) {
+      if (column_index >= 0 && it_ != data_.end()) {
 	auto idx = static_cast<size_t>(column_index);
-	auto & row = data_[current_row_idx_];
+	auto & row = it_->second;
 	if (idx < row.size()) return row[idx].empty();
       }
       return true;
     }
+
+    bool seekBegin() override {
+      it_ = data_.begin();
+      return it_ != data_.end();
+    }
     
-    bool seek(int row) {
-      if (row >= 0 && row < data_.size()) {
-	current_row_idx_ = static_cast<size_t>(row);
-	return true;
-      } else {
-	return false;
-      }
+    bool seek(const std::string & key) override {
+      it_ = data_.find(key);
+      return it_ != data_.end();
     }
 
     void append(DataStream & other) override {
@@ -91,23 +95,24 @@ namespace sqldb {
 	header_row_.push_back(std::pair(other.getColumnType(i), other.getColumnName(i)));
       }
 
-      if (other.seek(0)) {
+      if (other.seekBegin()) {
 	do {
-	  data_.push_back(std::vector<std::string>());
-	  auto & row = data_.back();
-	  
+	  addRow(other.getRowKey());	  
 	  for (int i = 0; i < other.getNumFields(); i++) {
-	    row.push_back(other.getText(i));
+	    set(i, other.getText(i));
 	  }
 	} while (other.next());
       }
     }
-
-    bool hasExactSize() const override { return true; }
-
+      
+    std::string getRowKey() const {
+      if (it_ != data_.end()) return it_->first;
+      else return "";
+    }
+    
   private:
-    std::vector<std::vector<std::string> > data_;
-    size_t current_row_idx_ = 0;
+    std::map<std::string, std::vector<std::string> > data_;
+    std::map<std::string, std::vector<std::string> >::iterator it_;
     std::vector<std::pair<ColumnType, std::string> > header_row_;
   };
 };
