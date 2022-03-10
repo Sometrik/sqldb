@@ -65,6 +65,10 @@ CSV::CSV(std::string csv_file) : csv_file_(move(csv_file)) {
       cerr << "delimiter = " << delimiter_ << "\n";
     }
     header_row_ = split(s, delimiter_);
+
+    while (next()) {
+      num_rows_++;
+    }
   } else {
     cerr << "failed to open\n";
   }
@@ -146,8 +150,14 @@ CSV::getText(int column_index, std::string default_value) {
 }
 
 bool
-CSV::seek(int row0) {
-  size_t row = static_cast<size_t>(row0);
+CSV::seek(const std::string & key) {
+  size_t row;
+  try {
+    row = static_cast<size_t>(stoi(key));
+  } catch (...) {
+    return false;
+  }
+  
   if (row + 1 == next_row_idx_) {
     return true;
   }

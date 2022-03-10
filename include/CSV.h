@@ -24,6 +24,9 @@ namespace sqldb {
     }
     int getNumFields() const override { return static_cast<int>(header_row_.size()); }
     int getNumRows() const override {
+#if 1
+      return num_rows_;
+#else
       size_t rows;
       if (row_offsets_.empty()) {
 	rows = total_size_ / (getNumFields() * 10);
@@ -34,6 +37,7 @@ namespace sqldb {
 	rows = row_offsets_.size() + remaining_rows;
       }
       return static_cast<int>(rows);
+#endif
     }
     
     std::string getColumnName(int column_index) const {
@@ -46,8 +50,11 @@ namespace sqldb {
       return idx >= current_row_.size() || current_row_[idx].empty();
     }
 
-    bool seek(int row0);
+    bool seekBegin() override { return seek("0"); }
+    bool seek(const std::string & key) override;
 
+    std::string getRowKey() const { return next_row_idx_ >= 1 ? std::to_string(next_row_idx_ - 1) : ""; }
+    
   private:
     std::string get_record();
     
@@ -60,6 +67,7 @@ namespace sqldb {
     std::string input_buffer_;
     std::vector<size_t> row_offsets_;
     size_t total_size_ = 0;
+    size_t num_rows_ = 0;
   };
 };
 
