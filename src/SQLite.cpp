@@ -36,7 +36,6 @@ public:
   bool isNull(int column_index) const override;
 
   int getNumFields() const override;
-  int getNumRows() const override { return num_rows_; }
 
   long long getLastInsertId() const override;
   size_t getAffectedRows() const override;
@@ -55,7 +54,6 @@ protected:
 private:
   sqlite3 * db_;
   sqlite3_stmt * stmt_;
-  int num_rows_ = 0;
   vector<const char *> column_names_;
 };
 
@@ -178,7 +176,6 @@ SQLiteStatement::step() {
     switch (r) {
     case SQLITE_ROW:
       results_available = true;
-      num_rows_++;
       return;
       
     case SQLITE_DONE:
@@ -205,8 +202,6 @@ SQLiteStatement::step() {
 void
 SQLiteStatement::reset() {
   SQLStatement::reset();
-
-  num_rows_ = 0;
   
   int r = sqlite3_reset(stmt_);
 

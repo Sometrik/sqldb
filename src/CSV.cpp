@@ -65,10 +65,6 @@ CSV::CSV(std::string csv_file) : csv_file_(move(csv_file)) {
       cerr << "delimiter = " << delimiter_ << "\n";
     }
     header_row_ = split(s, delimiter_);
-
-    while (next()) {
-      num_rows_++;
-    }
   } else {
     cerr << "failed to open\n";
   }

@@ -23,22 +23,6 @@ namespace sqldb {
       return ustring();
     }
     int getNumFields() const override { return static_cast<int>(header_row_.size()); }
-    int getNumRows() const override {
-#if 1
-      return num_rows_;
-#else
-      size_t rows;
-      if (row_offsets_.empty()) {
-	rows = total_size_ / (getNumFields() * 10);
-      } else {
-	size_t avg_size = row_offsets_.back() / row_offsets_.size();
-	size_t remaining_size = total_size_ - row_offsets_.back();
-	size_t remaining_rows = remaining_size / avg_size;
-	rows = row_offsets_.size() + remaining_rows;
-      }
-      return static_cast<int>(rows);
-#endif
-    }
     
     std::string getColumnName(int column_index) const {
       auto idx = static_cast<size_t>(column_index);
@@ -67,7 +51,6 @@ namespace sqldb {
     std::string input_buffer_;
     std::vector<size_t> row_offsets_;
     size_t total_size_ = 0;
-    size_t num_rows_ = 0;
   };
 };
 

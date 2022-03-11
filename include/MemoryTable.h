@@ -57,7 +57,7 @@ namespace sqldb {
       return ustring();
     }
     int getNumFields() const override { return static_cast<int>(header_row_.size()); }
-    int getNumRows() const override { return static_cast<int>(data_.size()); }
+    int getNumRows() const { return static_cast<int>(data_.size()); }
 
     ColumnType getColumnType(int column_index) const override {
       auto idx = static_cast<size_t>(column_index);

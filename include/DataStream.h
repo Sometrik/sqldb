@@ -29,7 +29,6 @@ namespace sqldb {
 
     virtual bool isNull(int column_index) const = 0;
     virtual int getNumFields() const = 0;
-    virtual int getNumRows() const = 0;
     virtual bool next() = 0;
     virtual bool seekBegin() { return false; }
     virtual bool seek(const std::string & key) { return false; }
