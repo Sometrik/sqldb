@@ -2,23 +2,11 @@
 #define _SQLDB_DATASTREAM_H_
 
 #include "ustring.h"
+#include "ColumnType.h"
 
 #include <string>
-#include <memory>
-#include <unordered_set>
-#include <vector>
 
-namespace sqldb {
-  enum class ColumnType {
-    UNDEF = 0,
-    INT,
-    INT64,
-    TEXT,
-    DATETIME,
-    DOUBLE,
-    URL
-  };
-  
+namespace sqldb {  
   class DataStream {
   public:
     DataStream() { }
@@ -30,8 +18,6 @@ namespace sqldb {
     virtual bool isNull(int column_index) const = 0;
     virtual int getNumFields() const = 0;
     virtual bool next() = 0;
-    virtual bool seekBegin() { return false; }
-    virtual bool seek(const std::string & key) { return false; }
 
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
@@ -71,49 +57,8 @@ namespace sqldb {
       }
       return default_value;  
     }
-
-    virtual std::unique_ptr<DataStream> copy() const {
-      // throw exception
-      return std::unique_ptr<DataStream>(nullptr);
-    }
-
-    virtual void addColumn(std::string name, sqldb::ColumnType type) {
-      // throw exception
-    }
-
-    virtual void append(DataStream & other) {
-      // throw exception
-    }
-
-    virtual std::string getRowKey() const { return ""; }
 			
     std::string getText(int column_index) { return getText(column_index, ""); }
-
-    int getColumnByName(const std::unordered_set<std::string> & names) const {
-      for (int i = getNumFields() - 1; i >= 0; i--) {
-	if (names.count(getColumnName(i))) {
-	  return i;
-	}
-      }
-      return -1;
-    }
-
-    std::vector<int> getColumnsByName(const std::unordered_set<std::string> & names) const {
-      std::vector<int> r;
-      for (int i = getNumFields() - 1; i >= 0; i--) {
-	if (names.count(getColumnName(i))) {
-	  r.push_back(i);
-	}
-      }
-      return r;
-    }
-    
-    void addIntColumn(std::string name) { addColumn(std::move(name), ColumnType::INT); }
-    void addInt64Column(std::string name) { addColumn(std::move(name), ColumnType::INT64); }
-    void addDateTimeColumn(std::string name) { addColumn(std::move(name), ColumnType::DATETIME); }
-    void addTextColumn(std::string name) { addColumn(std::move(name), ColumnType::TEXT); }
-    void addDoubleColumn(std::string name) { addColumn(std::move(name), ColumnType::DOUBLE); }
-    void addURLColumn(std::string name) { addColumn(std::move(name), ColumnType::URL); }
   };
 };
 

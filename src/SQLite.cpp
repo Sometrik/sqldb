@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cassert>
 #include <iostream>
+#include <vector>
 
 #include "SQLException.h"
 
