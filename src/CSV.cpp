@@ -2,10 +2,22 @@
 
 #include <Cursor.h>
 
+#include <utf8proc.h>
+
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <cstdio>
+
+static inline std::string normalize_nfc(const std::string & input) {
+  auto r0 = utf8proc_NFC(reinterpret_cast<const unsigned char *>(input.c_str()));
+  std::string r;
+  if (r0) {
+    r = (const char *)r0;
+    free(r0);
+  }
+  return r;
+}
 
 using namespace sqldb;
 using namespace std;
@@ -159,7 +171,7 @@ private:
 	  auto rec = input_buffer_.substr(0, i);
 	  // std::cerr << "found record: " << rec << "\n";
 	  input_buffer_ = input_buffer_.substr(i + 1);
-	  return rec;
+	  return normalize_nfc(rec);
 	}
       }
       
