@@ -51,6 +51,7 @@ namespace sqldb {
     void addInt64Column(std::string name) { addColumn(std::move(name), ColumnType::INT64); }
     void addCharColumn(std::string name) { addColumn(std::move(name), ColumnType::CHAR); }
     void addDateTimeColumn(std::string name) { addColumn(std::move(name), ColumnType::DATETIME); }
+    void addVarCharColumn(std::string name) { addColumn(std::move(name), ColumnType::VARCHAR); }
     void addTextColumn(std::string name) { addColumn(std::move(name), ColumnType::TEXT); }
     void addDoubleColumn(std::string name) { addColumn(std::move(name), ColumnType::DOUBLE); }
     void addURLColumn(std::string name) { addColumn(std::move(name), ColumnType::URL); }
