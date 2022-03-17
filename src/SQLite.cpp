@@ -230,11 +230,11 @@ SQLiteStatement &
 SQLiteStatement::bind(int value, bool is_defined) {
   assert(stmt_);
   unsigned int index = getNextBindIndex();
-  if (is_defined) {
-    int r = sqlite3_bind_int(stmt_, index, value);
-    if (r != SQLITE_OK) {
-      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-    }
+  int r;
+  if (is_defined) r = sqlite3_bind_int(stmt_, index, value);
+  else r = sqlite3_bind_null(stmt_, index);
+  if (r != SQLITE_OK) {
+    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
   }
   return *this;
 }
@@ -243,11 +243,11 @@ SQLiteStatement &
 SQLiteStatement::bind(long long value, bool is_defined) {
   assert(stmt_);
   unsigned int index = getNextBindIndex();
-  if (is_defined) {
-    int r = sqlite3_bind_int64(stmt_, index, (sqlite_int64)value);
-    if (r != SQLITE_OK) {
-      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-    }
+  int r;
+  if (is_defined) r = sqlite3_bind_int64(stmt_, index, (sqlite_int64)value);
+  else r = sqlite3_bind_null(stmt_, index);
+  if (r != SQLITE_OK) {
+    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
   }
   return *this;
 }
@@ -256,11 +256,11 @@ SQLiteStatement &
 SQLiteStatement::bind(double value, bool is_defined) {
   assert(stmt_);
   unsigned int index = getNextBindIndex();
-  if (is_defined) {
-    int r = sqlite3_bind_double(stmt_, index, value);
-    if (r != SQLITE_OK) {
-      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-    }
+  int r;
+  if (is_defined) r = sqlite3_bind_double(stmt_, index, value);
+  else r = sqlite3_bind_null(stmt_, index);
+  if (r != SQLITE_OK) {
+    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
   }
   return *this;
 }
@@ -269,12 +269,11 @@ SQLiteStatement &
 SQLiteStatement::bind(const char * value, bool is_defined) {
   assert(stmt_);
   unsigned int index = getNextBindIndex();
-  if (is_defined) {
-    assert(value);
-    int r = sqlite3_bind_text(stmt_, index, value, (int)strlen(value), SQLITE_TRANSIENT);  
-    if (r != SQLITE_OK) {
-      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-    }
+  int r;
+  if (is_defined) r = sqlite3_bind_text(stmt_, index, value, (int)strlen(value), SQLITE_TRANSIENT);
+  else r = sqlite3_bind_null(stmt_, index);
+  if (r != SQLITE_OK) {
+    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
   }
   return *this;
 }
@@ -283,11 +282,11 @@ SQLiteStatement &
 SQLiteStatement::bind(const std::string & value, bool is_defined) {
   assert(stmt_);
   unsigned int index = getNextBindIndex();
-  if (is_defined) {
-    int r = sqlite3_bind_text(stmt_, index, value.c_str(), (int)value.size(), SQLITE_TRANSIENT);  
-    if (r != SQLITE_OK) {
-      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-    }
+  int r;
+  if (is_defined) r = sqlite3_bind_text(stmt_, index, value.c_str(), (int)value.size(), SQLITE_TRANSIENT);
+  else r = sqlite3_bind_null(stmt_, index);
+  if (r != SQLITE_OK) {
+    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
   }
   return *this;
 }
@@ -296,24 +295,24 @@ SQLiteStatement &
 SQLiteStatement::bind(const ustring & value, bool is_defined) {
   assert(stmt_);
   unsigned int index = getNextBindIndex();
-  if (is_defined) {
-    int r = sqlite3_bind_blob(stmt_, index, value.data(), value.size(), SQLITE_TRANSIENT);  
-    if (r != SQLITE_OK) {
-      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-    }
+  int r;
+  if (is_defined) r = sqlite3_bind_blob(stmt_, index, value.data(), value.size(), SQLITE_TRANSIENT);  
+  else r = sqlite3_bind_null(stmt_, index);
+  if (r != SQLITE_OK) {
+    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
   }
   return *this;
 }
 
 SQLiteStatement &
-SQLiteStatement::bind(const void* data, size_t len, bool is_defined = true) {
+SQLiteStatement::bind(const void* data, size_t len, bool is_defined) {
   assert(stmt_);
   unsigned int index = getNextBindIndex();
-  if (is_defined) {
-    int r = sqlite3_bind_blob(stmt_, index, data, len, SQLITE_TRANSIENT);  
-    if (r != SQLITE_OK) {
-      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-    }
+  int r;
+  if (is_defined) r = sqlite3_bind_blob(stmt_, index, data, len, SQLITE_TRANSIENT);
+  else r = sqlite3_bind_null(stmt_, index);
+  if (r != SQLITE_OK) {
+    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
   }
   return *this;
 }
