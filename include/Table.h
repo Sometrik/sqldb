@@ -28,16 +28,21 @@ namespace sqldb {
     virtual ColumnType getColumnType(int column_index) const = 0;
     virtual std::string getColumnName(int column_index) const = 0;
     
-    int getColumnByName(const std::unordered_set<std::string> & names) const {
+    int getColumnByNames(const std::unordered_set<std::string> & names) const {
       for (int i = getNumFields() - 1; i >= 0; i--) {
-	if (names.count(getColumnName(i))) {
-	  return i;
-	}
+	if (names.count(getColumnName(i))) return i;
       }
       return -1;
     }
-    
-    std::vector<int> getColumnsByName(const std::unordered_set<std::string> & names) const {
+
+    int getColumnByName(const std::string & name) const {
+      for (int i = getNumFields() - 1; i >= 0; i--) {
+	if (getColumnName(i) == name) return i;
+      }
+      return -1;
+    }
+
+    std::vector<int> getColumnsByNames(const std::unordered_set<std::string> & names) const {
       std::vector<int> r;
       for (int i = getNumFields() - 1; i >= 0; i--) {
 	if (names.count(getColumnName(i))) {
