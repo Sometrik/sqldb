@@ -3,6 +3,8 @@
 
 #include "Table.h"
 
+#include <stdexcept>
+
 namespace sqldb {
   class CSVFile;
   
@@ -22,11 +24,11 @@ namespace sqldb {
     }
 
     void append(Table & other) override {
-      // throw
+      throw std::runtime_error("CSV is read-only");
     }
 
     void addColumn(std::string name, sqldb::ColumnType type) override {
-      // throw
+      throw std::runtime_error("CSV is read-only");
     }
 
     std::unique_ptr<Cursor> seekBegin() override { return seek("0"); }
