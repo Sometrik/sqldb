@@ -7,6 +7,7 @@ namespace sqldb {
       INT,
       INT64,
       CHAR,
+      BOOL,
       VARCHAR, // single line of text
       TEXT, // multiple lines of text
       DATETIME,
