@@ -8,7 +8,6 @@
 #include <fstream>
 #include <vector>
 #include <cstdio>
-#include <stdexcept>
 
 static inline std::string normalize_nfc(const std::string & input) {
   auto r0 = utf8proc_NFC(reinterpret_cast<const unsigned char *>(input.c_str()));
