@@ -22,7 +22,7 @@ namespace sqldb {
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
     }
-    virtual std::string getColumnName(int column_index) const { return ""; }
+    virtual std::string getColumnName(int column_index) const { return "Column #" + std::to_string(column_index); }
     
     virtual bool getBool(int column_index, bool default_value) {
       return getInt(column_index, default_value ? 1 : 0) ? true : false;
