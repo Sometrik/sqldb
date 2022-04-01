@@ -13,7 +13,8 @@ namespace sqldb {
       DATETIME,
       DOUBLE,
       URL,
-      FOREIGN_KEY
+      FOREIGN_KEY,
+      IMAGE // image (blob)
       };
 };
 
