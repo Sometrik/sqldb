@@ -21,7 +21,8 @@ namespace sqldb {
       COMMIT_FAILED,
       ROLLBACK_FAILED,
       CONSTRAINT_VIOLATION,
-      OPEN_FAILED
+      OPEN_FAILED,
+      MISMATCH      
     };
   SQLException(ErrorType _type) : type(_type) { }
   SQLException(ErrorType _type, const std::string & _errormsg)
@@ -49,6 +50,7 @@ namespace sqldb {
       case ROLLBACK_FAILED: return "Rollback failed";
       case CONSTRAINT_VIOLATION: return "Constraint violation";
       case OPEN_FAILED: return "Database opening failed";
+      case MISMATCH: return "Datatype mismatch";
       }
       return "Unknown error";
     }

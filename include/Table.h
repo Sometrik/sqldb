@@ -1,5 +1,5 @@
-#ifndef _TABLE_H_
-#define _TABLE_H_
+#ifndef _SQLDB_TABLE_H_
+#define _SQLDB_TABLE_H_
 
 #include "ColumnType.h"
 
@@ -20,13 +20,20 @@ namespace sqldb {
     virtual std::unique_ptr<Cursor> seekBegin() = 0;
     virtual std::unique_ptr<Cursor> seek(const std::string & key) = 0;
 
+    virtual std::unique_ptr<Cursor> addRow(const std::string & key) = 0;
+    virtual std::unique_ptr<Cursor> addRow() = 0;
+
     virtual std::unique_ptr<Table> copy() const = 0;
-    virtual void addColumn(std::string name, sqldb::ColumnType type) = 0;
+    virtual void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) = 0;
     virtual void append(Table & other) = 0;
 
     virtual int getNumFields() const = 0;
     virtual ColumnType getColumnType(int column_index) const = 0;
+    virtual bool isColumnUnique(int column_index) const { return false; }
     virtual std::string getColumnName(int column_index) const = 0;
+
+    virtual void begin() { }
+    virtual void commit() { }
     
     int getColumnByNames(const std::unordered_set<std::string> & names) const {
       for (int i = getNumFields() - 1; i >= 0; i--) {
@@ -56,7 +63,7 @@ namespace sqldb {
     void addInt64Column(std::string name) { addColumn(std::move(name), ColumnType::INT64); }
     void addCharColumn(std::string name) { addColumn(std::move(name), ColumnType::CHAR); }
     void addDateTimeColumn(std::string name) { addColumn(std::move(name), ColumnType::DATETIME); }
-    void addVarCharColumn(std::string name) { addColumn(std::move(name), ColumnType::VARCHAR); }
+    void addVarCharColumn(std::string name, bool unique = false) { addColumn(std::move(name), ColumnType::VARCHAR, unique); }
     void addTextColumn(std::string name) { addColumn(std::move(name), ColumnType::TEXT); }
     void addDoubleColumn(std::string name) { addColumn(std::move(name), ColumnType::DOUBLE); }
     void addURLColumn(std::string name) { addColumn(std::move(name), ColumnType::URL); }

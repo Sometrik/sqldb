@@ -12,34 +12,178 @@ using namespace sqldb;
 
 class SQLiteStatement : public SQLStatement {
 public:
-  SQLiteStatement(sqlite3 * db, sqlite3_stmt * stmt);
-  ~SQLiteStatement();
-  
-  size_t execute() override;
-  bool next() override;
-  void reset() override;
+  SQLiteStatement(sqlite3 * db, sqlite3_stmt * stmt)
+    : db_(db), stmt_(stmt) {
+    assert(db_);
+    assert(stmt_);
 
-  SQLiteStatement & bind(int value, bool is_defined) override;
-  SQLiteStatement & bind(long long value, bool is_defined) override;
-  SQLiteStatement & bind(double value, bool is_defined) override;
-  SQLiteStatement & bind(const char * value, bool is_defined) override;
-  SQLiteStatement & bind(const std::string & value, bool is_defined) override;
-  SQLiteStatement & bind(const ustring & value, bool is_defined) override;
-  SQLiteStatement & bind(const void* data, size_t len, bool is_defined) override;
+    for (int i = 0, n = sqlite3_column_count(stmt_); i < n; i++) {
+      column_names_.push_back(sqlite3_column_name(stmt_, i));
+    }
+  }
+  ~SQLiteStatement() {
+    if (stmt_) sqlite3_finalize(stmt_);
+  }
   
-  int getInt(int column_index, int default_value = 0) override;
-  double getDouble(int column_index, double default_value = 0.0) override;
-  float getFloat(int column_index, float default_value = 0.0) override;
-  long long getLongLong(int column_index, long long default_value = 0) override;
-  std::string getText(int column_index, std::string default_value) override;
-  ustring getBlob(int column_index) override;
+  size_t execute() override {
+    step();
+    return getAffectedRows();
+  }
+  bool next() override {
+    step();
+    return results_available;
+  }
+  void reset() override {
+    SQLStatement::reset();
     
-  bool isNull(int column_index) const override;
+    int r = sqlite3_reset(stmt_);
+    
+    switch (r) {
+    case SQLITE_OK: return;
+      
+    case SQLITE_SCHEMA:
+      throw SQLException(SQLException::SCHEMA_CHANGED, sqlite3_errmsg(db_));
+      return;
+      
+    default:
+      cerr << "unknown error: " << r << endl;
+      assert(0);
+      return;
+    }
+  }
+  
+  void set(int column_idx, const std::string & value, bool is_defined) override {
+    int r;
+    if (is_defined) r = sqlite3_bind_text(stmt_, column_idx, value.c_str(), static_cast<int>(value.size()), SQLITE_TRANSIENT);
+    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (r != SQLITE_OK) {
+      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
+    }
+  }
 
-  int getNumFields() const override;
+  void set(int column_idx, int value, bool is_defined) override {
+    int r;
+    if (is_defined) r = sqlite3_bind_int(stmt_, column_idx, value);
+    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (r != SQLITE_OK) {
+      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
+    }
+  }
 
-  long long getLastInsertId() const override;
-  size_t getAffectedRows() const override;
+  void set(int column_idx, double value, bool is_defined) override {
+    int r;
+    if (is_defined) r = sqlite3_bind_double(stmt_, column_idx, value);
+    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (r != SQLITE_OK) {
+      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
+    }
+  }
+
+  void set(int column_idx, long long value, bool is_defined) override {
+    int r;
+    if (is_defined) r = sqlite3_bind_int64(stmt_, column_idx, (sqlite_int64)value);
+    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (r != SQLITE_OK) {
+      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
+    }
+  }
+    
+  void set(int column_idx, const void * data, size_t len, bool is_defined) {
+    int r;
+    if (is_defined) r = sqlite3_bind_blob(stmt_, column_idx, data, len, SQLITE_TRANSIENT);
+    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (r != SQLITE_OK) {
+      throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
+    }
+  }
+
+  SQLiteStatement & bind(int value, bool is_defined) override {
+    set(getNextBindIndex(), value, is_defined);
+    return *this;
+  }
+  SQLiteStatement & bind(long long value, bool is_defined) override {
+    set(getNextBindIndex(), value, is_defined);
+    return *this;
+  }  
+  SQLiteStatement & bind(double value, bool is_defined) override {
+    set(getNextBindIndex(), value, is_defined);
+    return *this;
+  }
+  SQLiteStatement & bind(const char * value, bool is_defined) override {
+    set(getNextBindIndex(), value, is_defined);
+    return *this;
+  }
+  SQLiteStatement & bind(const std::string & value, bool is_defined) override {
+    set(getNextBindIndex(), value, is_defined);
+    return *this;
+  }
+  SQLiteStatement & bind(const void * data, size_t len, bool is_defined) override {
+    set(getNextBindIndex(), data, len, is_defined);
+    return *this;
+  }
+  
+  int getInt(int column_index, int default_value = 0) override {
+    if (!isNull(column_index)) {
+      return sqlite3_column_int(stmt_, column_index);
+    }
+    return default_value;
+  }
+  double getDouble(int column_index, double default_value = 0.0) override {
+    if (!isNull(column_index)) {
+      return sqlite3_column_double(stmt_, column_index);
+    }
+    return default_value;
+  }
+  float getFloat(int column_index, float default_value) override {
+    if (!isNull(column_index)) {
+      return static_cast<float>(sqlite3_column_double(stmt_, column_index));
+    }
+    return default_value;
+  }
+  long long getLongLong(int column_index, long long default_value = 0) override {
+    if (!isNull(column_index)) {
+      return sqlite3_column_int64(stmt_, column_index);
+    }
+    return default_value;
+  }
+  std::string getText(int column_index, std::string default_value) override {
+    if (!isNull(column_index)) {
+      const char * s = (const char *)sqlite3_column_text(stmt_, column_index);
+      if (s) {
+	return string(s);
+      }
+    }
+    return move(default_value);
+  }
+  std::vector<uint8_t> getBlob(int column_index) override {
+    std::vector<uint8_t> r;
+    if (!isNull(column_index)) {
+      auto data = reinterpret_cast<const uint8_t*>(sqlite3_column_blob(stmt_, column_index));
+      auto len = sqlite3_column_bytes(stmt_, column_index);
+      r.reserve(len);
+      for (size_t i = 0; i < len; i++) r.push_back(data[i]);
+    }
+    return r;
+  }
+    
+  bool isNull(int column_index) const override {
+    if (!results_available) {
+      return true;
+    } else {
+      return stmt_ ? sqlite3_column_type(stmt_, column_index) == SQLITE_NULL : true;
+    }
+  }
+
+  int getNumFields() const override {
+    return static_cast<int>(column_names_.size());    
+  }
+
+  long long getLastInsertId() const override {
+    return sqlite3_last_insert_rowid(db_);
+  }
+  size_t getAffectedRows() const override {
+    return sqlite3_changes(db_);
+  }
 
   std::string getColumnName(int column_index) const override {
     if (column_index >= 0 && column_index < static_cast<int>(column_names_.size())) {
@@ -149,25 +293,6 @@ SQLite::prepare(const string & query) {
   return std::make_unique<SQLiteStatement>(db_, stmt);
 }
 
-SQLiteStatement::SQLiteStatement(sqlite3 * db, sqlite3_stmt * stmt) : db_(db), stmt_(stmt) {
-  assert(db_);
-  assert(stmt_);
-
-  for (int i = 0, n = getNumFields(); i < n; i++) {
-    column_names_.push_back(sqlite3_column_name(stmt_, i));
-  }
-}
-
-SQLiteStatement::~SQLiteStatement() {
-  if (stmt_) sqlite3_finalize(stmt_);
-}
-
-size_t
-SQLiteStatement::execute() {
-  step();
-  return getAffectedRows();
-}
-
 void
 SQLiteStatement::step() {
   results_available = false;
@@ -189,6 +314,7 @@ SQLiteStatement::step() {
     case SQLITE_ERROR: throw SQLException(SQLException::DATABASE_ERROR, sqlite3_errmsg(db_));
     case SQLITE_MISUSE: throw SQLException(SQLException::DATABASE_MISUSE, sqlite3_errmsg(db_));
     case SQLITE_CONSTRAINT: throw SQLException(SQLException::CONSTRAINT_VIOLATION, sqlite3_errmsg(db_));
+    case SQLITE_MISMATCH: throw SQLException(SQLException::MISMATCH, sqlite3_errmsg(db_));
       
     default:
       cerr << "unknown error: " << r << endl;
@@ -198,199 +324,4 @@ SQLiteStatement::step() {
   }
   
   throw SQLException(SQLException::QUERY_TIMED_OUT);
-}
-
-void
-SQLiteStatement::reset() {
-  SQLStatement::reset();
-  
-  int r = sqlite3_reset(stmt_);
-
-  switch (r) {
-  case SQLITE_OK: return;
-  
-  case SQLITE_SCHEMA:
-    throw SQLException(SQLException::SCHEMA_CHANGED, sqlite3_errmsg(db_));
-    return;
-    
-  default:
-    cerr << "unknown error: " << r << endl;
-    assert(0);
-    return;
-  }
-}
-
-bool
-SQLiteStatement::next() {
-  step();
-  return results_available;
-}
-
-SQLiteStatement &
-SQLiteStatement::bind(int value, bool is_defined) {
-  assert(stmt_);
-  unsigned int index = getNextBindIndex();
-  int r;
-  if (is_defined) r = sqlite3_bind_int(stmt_, index, value);
-  else r = sqlite3_bind_null(stmt_, index);
-  if (r != SQLITE_OK) {
-    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-  }
-  return *this;
-}
-
-SQLiteStatement &
-SQLiteStatement::bind(long long value, bool is_defined) {
-  assert(stmt_);
-  unsigned int index = getNextBindIndex();
-  int r;
-  if (is_defined) r = sqlite3_bind_int64(stmt_, index, (sqlite_int64)value);
-  else r = sqlite3_bind_null(stmt_, index);
-  if (r != SQLITE_OK) {
-    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-  }
-  return *this;
-}
-
-SQLiteStatement &
-SQLiteStatement::bind(double value, bool is_defined) {
-  assert(stmt_);
-  unsigned int index = getNextBindIndex();
-  int r;
-  if (is_defined) r = sqlite3_bind_double(stmt_, index, value);
-  else r = sqlite3_bind_null(stmt_, index);
-  if (r != SQLITE_OK) {
-    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-  }
-  return *this;
-}
-
-SQLiteStatement &
-SQLiteStatement::bind(const char * value, bool is_defined) {
-  assert(stmt_);
-  unsigned int index = getNextBindIndex();
-  int r;
-  if (is_defined) r = sqlite3_bind_text(stmt_, index, value, (int)strlen(value), SQLITE_TRANSIENT);
-  else r = sqlite3_bind_null(stmt_, index);
-  if (r != SQLITE_OK) {
-    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-  }
-  return *this;
-}
-    
-SQLiteStatement &
-SQLiteStatement::bind(const std::string & value, bool is_defined) {
-  assert(stmt_);
-  unsigned int index = getNextBindIndex();
-  int r;
-  if (is_defined) r = sqlite3_bind_text(stmt_, index, value.c_str(), (int)value.size(), SQLITE_TRANSIENT);
-  else r = sqlite3_bind_null(stmt_, index);
-  if (r != SQLITE_OK) {
-    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-  }
-  return *this;
-}
-
-SQLiteStatement &
-SQLiteStatement::bind(const ustring & value, bool is_defined) {
-  assert(stmt_);
-  unsigned int index = getNextBindIndex();
-  int r;
-  if (is_defined) r = sqlite3_bind_blob(stmt_, index, value.data(), value.size(), SQLITE_TRANSIENT);  
-  else r = sqlite3_bind_null(stmt_, index);
-  if (r != SQLITE_OK) {
-    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-  }
-  return *this;
-}
-
-SQLiteStatement &
-SQLiteStatement::bind(const void* data, size_t len, bool is_defined) {
-  assert(stmt_);
-  unsigned int index = getNextBindIndex();
-  int r;
-  if (is_defined) r = sqlite3_bind_blob(stmt_, index, data, len, SQLITE_TRANSIENT);
-  else r = sqlite3_bind_null(stmt_, index);
-  if (r != SQLITE_OK) {
-    throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
-  }
-  return *this;
-}
-
-int
-SQLiteStatement::getInt(int column_index, int default_value) {
-  if (!isNull(column_index)) {
-    return sqlite3_column_int(stmt_, column_index);
-  }
-  return default_value;
-}
-
-double
-SQLiteStatement::getDouble(int column_index, double default_value) {
-  if (!isNull(column_index)) {
-    return sqlite3_column_double(stmt_, column_index);
-  }
-  return default_value;
-}
-
-float
-SQLiteStatement::getFloat(int column_index, float default_value) {
-  if (!isNull(column_index)) {
-    return static_cast<float>(sqlite3_column_double(stmt_, column_index));
-  }
-  return default_value;
-}
-
-long long
-SQLiteStatement::getLongLong(int column_index, long long default_value) {
-  if (!isNull(column_index)) {
-    return sqlite3_column_int64(stmt_, column_index);
-  }
-  return default_value;
-}
-
-std::string
-SQLiteStatement::getText(int column_index, std::string default_value) {
-  if (!isNull(column_index)) {
-    const char * s = (const char *)sqlite3_column_text(stmt_, column_index);
-    if (s) {
-      return string(s);
-    }
-  }
-  return move(default_value);
-}
-
-ustring
-SQLiteStatement::getBlob(int column_index) {
-  if (!isNull(column_index)) {
-    auto data = sqlite3_column_blob(stmt_, column_index);
-    auto len = sqlite3_column_bytes(stmt_, column_index);
-    return ustring((const unsigned char *)data, len);
-  } else {
-    return ustring();
-  }
-}
-
-bool
-SQLiteStatement::isNull(int column_index) const {
-  if (!results_available) {
-    return true;
-  } else {
-    return stmt_ ? sqlite3_column_type(stmt_, column_index) == SQLITE_NULL : true;
-  }
-}
-
-int
-SQLiteStatement::getNumFields() const {
-  return stmt_ ? sqlite3_column_count(stmt_) : 0;
-}
-
-long long
-SQLiteStatement::getLastInsertId() const {
-  return sqlite3_last_insert_rowid(db_);
-}
-
-size_t
-SQLiteStatement::getAffectedRows() const {
-  return sqlite3_changes(db_);
 }

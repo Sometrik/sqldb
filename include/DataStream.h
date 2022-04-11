@@ -1,10 +1,10 @@
 #ifndef _SQLDB_DATASTREAM_H_
 #define _SQLDB_DATASTREAM_H_
 
-#include "ustring.h"
 #include "ColumnType.h"
 
 #include <string>
+#include <vector>
 
 namespace sqldb {  
   class DataStream {
@@ -12,7 +12,9 @@ namespace sqldb {
     DataStream() { }
     virtual ~DataStream() { }
 
-    virtual ustring getBlob(int column_index) = 0;
+    virtual size_t execute() = 0;
+
+    virtual std::vector<uint8_t> getBlob(int column_index) = 0;
     virtual std::string getText(int column_index, std::string default_value) = 0;
 
     virtual bool isNull(int column_index) const = 0;
@@ -27,6 +29,7 @@ namespace sqldb {
     virtual bool getBool(int column_index, bool default_value) {
       return getInt(column_index, default_value ? 1 : 0) ? true : false;
     }
+
     virtual double getDouble(int column_index, double default_value = 0.0) {
       auto s = getText(column_index);
       if (!s.empty()) {
@@ -37,7 +40,7 @@ namespace sqldb {
     virtual float getFloat(int column_index, float default_value = 0.0f) {
       auto s = getText(column_index);
       if (!s.empty()) {
-	try { return static_cast<float>(stof(s)); } catch (...) { }
+       try { return static_cast<float>(stof(s)); } catch (...) { }
       }
       return default_value;
     }
@@ -59,6 +62,14 @@ namespace sqldb {
     }
 			
     std::string getText(int column_index) { return getText(column_index, ""); }
+
+    virtual void set(int column_idx, const std::string & value, bool is_defined = true) = 0;
+    virtual void set(int column_idx, int value, bool is_defined = true) = 0;
+    virtual void set(int column_idx, long long value, bool is_defined = true) = 0;
+    virtual void set(int column_idx, double value, bool is_defined = true) = 0;
+    virtual void set(int column_idx, const void * data, size_t len, bool is_defined = true) = 0;
+
+    virtual long long getLastInsertId() const = 0;
   };
 };
 

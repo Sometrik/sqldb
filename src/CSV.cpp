@@ -213,8 +213,11 @@ public:
 
   int getNumFields() const override { return csv_->getNumFields(); }
 
-  ustring getBlob(int column_index) override {
-    return ustring();
+  vector<uint8_t> getBlob(int column_index) override {
+    auto v = csv_->getText(column_index, "");
+    std::vector<uint8_t> r;
+    for (size_t i = 0; i < v.size(); i++) r.push_back(static_cast<uint8_t>(v[i]));
+    return r;
   }
   
   bool isNull(int column_index) const override {
@@ -223,9 +226,26 @@ public:
   
   std::string getRowKey() const { return csv_->getNextRowIdx() >= 1 ? std::to_string(csv_->getNextRowIdx() - 1) : ""; }
 
-  void set(int column_idx, std::string value) override {
+  void set(int column_idx, const std::string & value, bool is_defined = true) override {
     throw std::runtime_error("CSV is read-only");
   }
+  void set(int column_idx, int value, bool is_defined = true) override {
+    throw std::runtime_error("CSV is read-only");
+  }
+  void set(int column_idx, long long value, bool is_defined = true) override {
+    throw std::runtime_error("CSV is read-only");
+  }
+  void set(int column_idx, double value, bool is_defined = true) override {
+    throw std::runtime_error("CSV is read-only");
+  }
+  void set(int column_idx, const void * data, size_t len, bool is_defined = true) override {
+    throw std::runtime_error("CSV is read-only");
+  }
+  size_t execute() override {
+    throw std::runtime_error("CSV is read-only");
+  }
+
+  long long getLastInsertId() const override { return 0; }
 
 private:
   std::shared_ptr<CSVFile> csv_;
