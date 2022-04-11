@@ -18,6 +18,7 @@ public:
   size_t execute() override {
     if (it_ != data_->end()) {
       it_->second = pending_row_;
+      pending_row_.clear();
       return 1;
     } else {
       return 0;
@@ -150,6 +151,7 @@ MemoryTable::append(Table & other) {
       for (int i = 0; i < cursor->getNumFields(); i++) {
 	my_cursor->set(i, cursor->getText(i));
       }
+      my_cursor->execute();
     } while (cursor->next());
   }
 }
