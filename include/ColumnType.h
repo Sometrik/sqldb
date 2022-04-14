@@ -14,6 +14,7 @@ namespace sqldb {
       DOUBLE,
       URL,
       FOREIGN_KEY,
+      STRING_SET,
       IMAGE // image (blob)
       };
 };
