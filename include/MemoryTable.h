@@ -22,6 +22,7 @@ namespace sqldb {
     
     std::unique_ptr<Cursor> addRow(const std::string & key) override;
     std::unique_ptr<Cursor> addRow() override;
+    std::unique_ptr<Cursor> incrementRow(const std::string & key) override;
             
     std::unique_ptr<Cursor> seekBegin() override;    
     std::unique_ptr<Cursor> seek(const std::string & key) override;

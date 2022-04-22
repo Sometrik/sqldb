@@ -19,6 +19,8 @@ public:
     return addRow(std::to_string(++auto_increment_));
   }
 
+  std::unique_ptr<Cursor> incrementRow(const std::string & key);
+
   void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) {
     header_row_.push_back(std::tuple(type, std::move(name), unique));
   }
@@ -52,12 +54,21 @@ public:
   MemoryTableCursor(std::unordered_map<std::string, std::vector<std::string> > * data,
 		    std::vector<std::tuple<ColumnType, std::string, bool> > * header_row,
 		    long long * auto_increment,
-		    std::unordered_map<std::string, std::vector<std::string> >::iterator it)
-    : data_(data), header_row_(header_row), auto_increment_(auto_increment), it_(it) { }
+		    std::unordered_map<std::string, std::vector<std::string> >::iterator it,
+		    bool is_increment_op = false)
+    : data_(data), header_row_(header_row), auto_increment_(auto_increment), it_(it), is_increment_op_(is_increment_op) { }
 
   size_t execute() override {
     if (it_ != data_->end()) {
-      it_->second = pending_row_;
+      if (is_increment_op_ && !it_->second.empty()) {
+	for (size_t i = 0; i < it_->second.size(); i++) {
+	  auto & v0 = it_->second[i];
+	  if (v0.empty()) v0 = pending_row_[i];
+	  else v0 = std::to_string(stoi(v0) + stoi(pending_row_[i]));
+	}
+      } else {
+	it_->second = pending_row_;
+      }
       pending_row_.clear();
       return 1;
     } else {
@@ -139,7 +150,8 @@ private:
   std::vector<std::tuple<ColumnType, std::string, bool> > * header_row_;
   long long * auto_increment_;
   std::unordered_map<std::string, std::vector<std::string> >::iterator it_;
-    
+  bool is_increment_op_;
+  
   std::vector<std::string> pending_row_;
 };
 
@@ -176,6 +188,19 @@ MemoryStorage::addRow(const std::string & key) {
   return std::make_unique<MemoryTableCursor>(&data_, &header_row_, &auto_increment_, move(it));
 }
 
+std::unique_ptr<Cursor>
+MemoryStorage::incrementRow(const std::string & key) {
+  assert(!key.empty());
+  auto it = data_.find(key);
+  if (it == data_.end()) {
+    data_[key] = std::vector<std::string>();
+    it = data_.find(key);
+  }
+  
+  assert(it != data_.end());
+  return std::make_unique<MemoryTableCursor>(&data_, &header_row_, &auto_increment_, move(it), true);
+}
+
 MemoryTable::MemoryTable(bool numeric_key)
   : numeric_key_(numeric_key), storage_(make_shared<MemoryStorage>()) { }
 
@@ -192,6 +217,11 @@ MemoryTable::addRow(const std::string & key) {
 std::unique_ptr<Cursor>
 MemoryTable::addRow() {
   return storage_->addRow();
+}
+
+std::unique_ptr<Cursor>
+MemoryTable::incrementRow(const std::string & key) {
+  return storage_->incrementRow(key);
 }
 
 std::unique_ptr<Cursor>
