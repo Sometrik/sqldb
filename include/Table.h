@@ -1,3 +1,4 @@
+
 #ifndef _SQLDB_TABLE_H_
 #define _SQLDB_TABLE_H_
 
@@ -27,14 +28,16 @@ namespace sqldb {
     virtual std::unique_ptr<Table> copy() const = 0;
     virtual void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) = 0;
     virtual void append(Table & other) = 0;
+    virtual void clear() = 0;
 
     virtual int getNumFields() const = 0;
     virtual ColumnType getColumnType(int column_index) const = 0;
     virtual bool isColumnUnique(int column_index) const { return false; }
     virtual std::string getColumnName(int column_index) const = 0;
-
+    
     virtual void begin() { }
     virtual void commit() { }
+    virtual void rollback() { }
     
     int getColumnByNames(const std::unordered_set<std::string> & names) const {
       for (int i = getNumFields() - 1; i >= 0; i--) {
@@ -69,6 +72,7 @@ namespace sqldb {
     void addDoubleColumn(std::string name) { addColumn(std::move(name), ColumnType::DOUBLE); }
     void addURLColumn(std::string name) { addColumn(std::move(name), ColumnType::URL); }
     void addForeignKeyColumn(std::string name) { addColumn(std::move(name), ColumnType::FOREIGN_KEY); }
+    void addEnumColumn(std::string name) { addColumn(std::move(name), ColumnType::ENUM); }
   };
 };
 

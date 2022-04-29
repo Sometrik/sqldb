@@ -35,6 +35,8 @@ namespace sqldb {
     bool isColumnUnique(int column_index) const;
     
     void append(Table & other) override;
+
+    void clear() override;
           
   private:
     bool numeric_key_;

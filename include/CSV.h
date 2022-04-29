@@ -27,6 +27,10 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
+    void clear() override {
+      throw std::runtime_error("CSV is read-only");
+    }
+
     void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) override {
       throw std::runtime_error("CSV is read-only");
     }

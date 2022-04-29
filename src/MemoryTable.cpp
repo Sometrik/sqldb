@@ -43,6 +43,10 @@ public:
     return idx < header_row_.size() ? std::get<2>(header_row_[idx]) : false;
   }
 
+  void clear() {
+    data_.clear();    
+  }
+
 private:
   std::unordered_map<std::string, std::vector<std::string> > data_;
   std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
@@ -144,7 +148,7 @@ public:
   }
 
   long long getLastInsertId() const override { return *auto_increment_; }
-    
+
 private:
   std::unordered_map<std::string, std::vector<std::string> > * data_;
   std::vector<std::tuple<ColumnType, std::string, bool> > * header_row_;
@@ -278,3 +282,7 @@ MemoryTable::append(Table & other) {
   }
 }
 
+void
+MemoryTable::clear() {
+  storage_->clear();
+}
