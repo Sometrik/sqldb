@@ -161,7 +161,7 @@ public:
       auto data = reinterpret_cast<const uint8_t*>(sqlite3_column_blob(stmt_, column_index));
       auto len = sqlite3_column_bytes(stmt_, column_index);
       r.reserve(len);
-      for (size_t i = 0; i < len; i++) r.push_back(data[i]);
+      for (int i = 0; i < len; i++) r.push_back(data[i]);
     }
     return r;
   }
