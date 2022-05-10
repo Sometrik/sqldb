@@ -67,8 +67,12 @@ public:
       if (is_increment_op_ && !it_->second.empty()) {
 	for (size_t i = 0; i < it_->second.size(); i++) {
 	  auto & v0 = it_->second[i];
-	  if (v0.empty()) v0 = pending_row_[i];
-	  else v0 = std::to_string(stoi(v0) + stoi(pending_row_[i]));
+	  if (v0.empty()) {
+	    v0 = pending_row_[i];
+	  } else if (getColumnType(i) != sqldb::ColumnType::FOREIGN_KEY && getColumnType(i) != sqldb::ColumnType::TEXT &&
+		     getColumnType(i) != sqldb::ColumnType::VARCHAR) {
+	    v0 = std::to_string(stoi(v0) + stoi(pending_row_[i]));
+	  }
 	}
       } else {
 	it_->second = pending_row_;
