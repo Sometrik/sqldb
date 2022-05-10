@@ -26,7 +26,7 @@ namespace sqldb {
     }
     virtual std::string getColumnName(int column_index) const { return "Column #" + std::to_string(column_index); }
     
-    virtual bool getBool(int column_index, bool default_value) {
+    virtual bool getBool(int column_index, bool default_value = false) {
       return getInt(column_index, default_value ? 1 : 0) ? true : false;
     }
 
