@@ -53,6 +53,13 @@ namespace sqldb {
       return -1;
     }
 
+    int getColumnByType(ColumnType type) const {
+      for (int i = 0, n = getNumFields(); i < n; i++) {
+	if (getColumnType(i) == type) return i;
+      }
+      return -1;
+    }
+
     std::vector<int> getColumnsByNames(const std::unordered_set<std::string> & names) const {
       std::vector<int> r;
       for (int i = getNumFields() - 1; i >= 0; i--) {
