@@ -3,12 +3,19 @@
 
 #include <cassert>
 #include <iostream>
+#include <mutex>
 
 using namespace std;
 using namespace sqldb;
 
+namespace sqldb {
+  class MemoryTableCursor;
+};
+
 class sqldb::MemoryStorage {
 public:
+  friend class sqldb::MemoryTableCursor;
+  
   MemoryStorage() { }
 
   std::unique_ptr<Cursor> seek(const std::string & key);
@@ -16,7 +23,12 @@ public:
   std::unique_ptr<Cursor> addRow(const std::string & key);
   
   std::unique_ptr<Cursor> addRow() {
-    return addRow(std::to_string(++auto_increment_));
+    int id;
+    {
+      std::lock_guard<std::mutex> guard(mutex_);
+      id = ++auto_increment_;
+    }
+    return addRow(std::to_string(id));
   }
 
   std::unique_ptr<Cursor> incrementRow(const std::string & key);
@@ -24,28 +36,39 @@ public:
   void removeRow(const std::string & key);
 
   void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) {
+    std::lock_guard<std::mutex> guard(mutex_);
     header_row_.push_back(std::tuple(type, std::move(name), unique));
   }
   
-  int getNumFields() const { return static_cast<int>(header_row_.size()); }
-  int getNumRows() const { return static_cast<int>(data_.size()); }
+  int getNumFields() const {
+    std::lock_guard<std::mutex> guard(mutex_);
+    return static_cast<int>(header_row_.size());
+  }
+  int getNumRows() const {
+    std::lock_guard<std::mutex> guard(mutex_);
+    return static_cast<int>(data_.size());
+  }
 
   ColumnType getColumnType(int column_index) const {
+    std::lock_guard<std::mutex> guard(mutex_);
     auto idx = static_cast<size_t>(column_index);
     return idx < header_row_.size() ? std::get<0>(header_row_[idx]) : ColumnType::UNDEF;
   }
 
   std::string getColumnName(int column_index) const {
+    std::lock_guard<std::mutex> guard(mutex_);
     auto idx = static_cast<size_t>(column_index);
     return idx < header_row_.size() ? std::get<1>(header_row_[idx]) : "";
   }
 
   bool isColumnUnique(int column_index) const {
+    std::lock_guard<std::mutex> guard(mutex_);
     auto idx = static_cast<size_t>(column_index);
     return idx < header_row_.size() ? std::get<2>(header_row_[idx]) : false;
   }
 
   void clear() {
+    std::lock_guard<std::mutex> guard(mutex_);
     data_.clear();    
   }
 
@@ -53,19 +76,20 @@ private:
   std::unordered_map<std::string, std::vector<std::string> > data_;
   std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
   long long auto_increment_ = 0;
+  mutable std::mutex mutex_;
 };
 
-class MemoryTableCursor : public Cursor {
+class sqldb::MemoryTableCursor : public Cursor {
 public:
-  MemoryTableCursor(std::unordered_map<std::string, std::vector<std::string> > * data,
-		    std::vector<std::tuple<ColumnType, std::string, bool> > * header_row,
-		    long long * auto_increment,
+  MemoryTableCursor(MemoryStorage * storage,
 		    std::unordered_map<std::string, std::vector<std::string> >::iterator it,
 		    bool is_increment_op = false)
-    : data_(data), header_row_(header_row), auto_increment_(auto_increment), it_(it), is_increment_op_(is_increment_op) { }
+    : storage_(storage), it_(it), is_increment_op_(is_increment_op) { }
 
   size_t execute() override {
-    if (it_ != data_->end()) {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+    auto & data = storage_->data_;
+    if (it_ != data.end()) {
       if (is_increment_op_ && !it_->second.empty()) {
 	for (size_t i = 0; i < it_->second.size(); i++) {
 	  auto & v0 = it_->second[i];
@@ -87,6 +111,8 @@ public:
   }
     
   void set(int column_idx, const std::string & value, bool is_defined = true) override {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
     while (column_idx >= static_cast<int>(pending_row_.size())) pending_row_.push_back("");
     pending_row_[column_idx] = is_defined ? value : "";
   }
@@ -97,20 +123,29 @@ public:
   void set(int column_idx, const void * data, size_t len, bool is_defined = true) { set(column_idx, std::string(reinterpret_cast<const char *>(data), len), is_defined); }
 
   bool next() override {
-    if (it_ != data_->end()) {
-      return ++it_ != data_->end();
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    auto & data = storage_->data_;
+    if (it_ != data.end()) {
+      return ++it_ != data.end();
     } else {
       return false;
     }
   }
 
   std::string getRowKey() const override {
-    if (it_ != data_->end()) return it_->first;
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    auto & data = storage_->data_;
+    if (it_ != data.end()) return it_->first;
     else return "";
   }
 
   std::string getText(int column_index, std::string default_value) override {
-    if (column_index >= 0 && it_ != data_->end()) {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    auto & data = storage_->data_;
+    if (column_index >= 0 && it_ != data.end()) {
       auto idx = static_cast<size_t>(column_index);
       auto & row = it_->second;
       if (idx < row.size()) return row[idx];
@@ -119,8 +154,11 @@ public:
   }
     
   std::vector<uint8_t> getBlob(int column_index) override {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    auto & data = storage_->data_;
     std::vector<uint8_t> r;
-    if (column_index >= 0 && it_ != data_->end()) {
+    if (column_index >= 0 && it_ != data.end()) {
       auto idx = static_cast<size_t>(column_index);
       auto & row = it_->second;
       if (idx < row.size()) {
@@ -132,20 +170,34 @@ public:
     return r;
   }
     
-  int getNumFields() const override { return static_cast<int>(header_row_->size()); }
+  int getNumFields() const override {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    auto & header_row = storage_->header_row_;
+    return static_cast<int>(header_row.size());
+  }
 
   ColumnType getColumnType(int column_index) const override {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    auto & header_row = storage_->header_row_;
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row_->size() ? std::get<0>((*header_row_)[idx]) : ColumnType::UNDEF;
+    return idx < header_row.size() ? std::get<0>(header_row[idx]) : ColumnType::UNDEF;
   }
     
   std::string getColumnName(int column_index) const override {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    auto & header_row = storage_->header_row_;
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row_->size() ? std::get<1>((*header_row_)[idx]) : "";
+    return idx < header_row.size() ? std::get<1>(header_row[idx]) : "";
   }
     
   bool isNull(int column_index) const override {
-    if (column_index >= 0 && it_ != data_->end()) {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    auto & data = storage_->data_;
+    if (column_index >= 0 && it_ != data.end()) {
       auto idx = static_cast<size_t>(column_index);
       auto & row = it_->second;
       if (idx < row.size()) return row[idx].empty();
@@ -153,12 +205,14 @@ public:
     return true;
   }
 
-  long long getLastInsertId() const override { return *auto_increment_; }
+  long long getLastInsertId() const override {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+
+    return storage_->auto_increment_;
+  }
 
 private:
-  std::unordered_map<std::string, std::vector<std::string> > * data_;
-  std::vector<std::tuple<ColumnType, std::string, bool> > * header_row_;
-  long long * auto_increment_;
+  MemoryStorage * storage_;
   std::unordered_map<std::string, std::vector<std::string> >::iterator it_;
   bool is_increment_op_;
   
@@ -167,9 +221,10 @@ private:
 
 std::unique_ptr<Cursor>
 MemoryStorage::seek(const std::string & key) {
+  std::lock_guard<std::mutex> guard(mutex_);
   auto it = data_.find(key);
   if (it != data_.end()) {
-    return std::make_unique<MemoryTableCursor>(&data_, &header_row_, &auto_increment_, move(it));
+    return std::make_unique<MemoryTableCursor>(this, move(it));
   } else {
     return std::unique_ptr<Cursor>(nullptr);
   }
@@ -177,9 +232,10 @@ MemoryStorage::seek(const std::string & key) {
 
 std::unique_ptr<Cursor>
 MemoryStorage::seekBegin() {
+  std::lock_guard<std::mutex> guard(mutex_);
   auto it = data_.begin();
   if (it != data_.end()) {
-    return std::make_unique<MemoryTableCursor>(&data_, &header_row_, &auto_increment_, move(it));
+    return std::make_unique<MemoryTableCursor>(this, move(it));
   } else {
     return std::unique_ptr<Cursor>(nullptr);
   }
@@ -187,6 +243,7 @@ MemoryStorage::seekBegin() {
 
 std::unique_ptr<Cursor>
 MemoryStorage::addRow(const std::string & key) {
+  std::lock_guard<std::mutex> guard(mutex_);
   assert(!key.empty());
   auto it = data_.find(key);
   if (it == data_.end()) {
@@ -195,11 +252,13 @@ MemoryStorage::addRow(const std::string & key) {
   }
   
   assert(it != data_.end());
-  return std::make_unique<MemoryTableCursor>(&data_, &header_row_, &auto_increment_, move(it));
+  return std::make_unique<MemoryTableCursor>(this, move(it));
 }
 
 std::unique_ptr<Cursor>
 MemoryStorage::incrementRow(const std::string & key) {
+  std::lock_guard<std::mutex> guard(mutex_);
+  
   assert(!key.empty());
   auto it = data_.find(key);
   if (it == data_.end()) {
@@ -208,7 +267,7 @@ MemoryStorage::incrementRow(const std::string & key) {
   }
   
   assert(it != data_.end());
-  return std::make_unique<MemoryTableCursor>(&data_, &header_row_, &auto_increment_, move(it), true);
+  return std::make_unique<MemoryTableCursor>(this, move(it), true);
 }
 
 void
