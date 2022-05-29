@@ -21,6 +21,8 @@ public:
 
   std::unique_ptr<Cursor> incrementRow(const std::string & key);
 
+  void removeRow(const std::string & key);
+
   void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) {
     header_row_.push_back(std::tuple(type, std::move(name), unique));
   }
@@ -209,6 +211,11 @@ MemoryStorage::incrementRow(const std::string & key) {
   return std::make_unique<MemoryTableCursor>(&data_, &header_row_, &auto_increment_, move(it), true);
 }
 
+void
+MemoryStorage::removeRow(const std::string & key) {
+  data_.erase(key);
+}
+
 MemoryTable::MemoryTable(bool numeric_key)
   : numeric_key_(numeric_key), storage_(make_shared<MemoryStorage>()) { }
 
@@ -230,6 +237,11 @@ MemoryTable::addRow() {
 std::unique_ptr<Cursor>
 MemoryTable::incrementRow(const std::string & key) {
   return storage_->incrementRow(key);
+}
+
+void
+MemoryTable::removeRow(const std::string & key) {
+  return storage_->removeRow(key);
 }
 
 std::unique_ptr<Cursor>

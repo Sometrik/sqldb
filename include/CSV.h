@@ -47,6 +47,10 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
+    void removeRow(const std::string & key) override {
+      throw std::runtime_error("CSV is read-only");
+    }
+
     std::unique_ptr<Cursor> seekBegin() override { return seek("0"); }
     std::unique_ptr<Cursor> seek(const std::string & key) override;
     

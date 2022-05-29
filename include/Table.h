@@ -24,6 +24,7 @@ namespace sqldb {
     virtual std::unique_ptr<Cursor> addRow(const std::string & key) = 0;
     virtual std::unique_ptr<Cursor> addRow() = 0;
     virtual std::unique_ptr<Cursor> incrementRow(const std::string & key) = 0;
+    virtual void removeRow(const std::string & key) = 0;
 
     virtual std::unique_ptr<Table> copy() const = 0;
     virtual void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) = 0;
