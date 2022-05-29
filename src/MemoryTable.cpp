@@ -84,7 +84,7 @@ public:
   MemoryTableCursor(MemoryStorage * storage,
 		    std::unordered_map<std::string, std::vector<std::string> >::iterator it,
 		    bool is_increment_op = false)
-    : storage_(storage), it_(it), is_increment_op_(is_increment_op) { }
+    : storage_(storage), header_row_(storage->header_row_), it_(it), is_increment_op_(is_increment_op) { }
 
   size_t execute() override {
     std::lock_guard<std::mutex> guard(storage_->mutex_);
@@ -171,26 +171,17 @@ public:
   }
     
   int getNumFields() const override {
-    std::lock_guard<std::mutex> guard(storage_->mutex_);
-
-    auto & header_row = storage_->header_row_;
-    return static_cast<int>(header_row.size());
+    return static_cast<int>(header_row_.size());
   }
 
   ColumnType getColumnType(int column_index) const override {
-    std::lock_guard<std::mutex> guard(storage_->mutex_);
-
-    auto & header_row = storage_->header_row_;
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row.size() ? std::get<0>(header_row[idx]) : ColumnType::UNDEF;
+    return idx < header_row_.size() ? std::get<0>(header_row_[idx]) : ColumnType::UNDEF;
   }
     
   std::string getColumnName(int column_index) const override {
-    std::lock_guard<std::mutex> guard(storage_->mutex_);
-
-    auto & header_row = storage_->header_row_;
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row.size() ? std::get<1>(header_row[idx]) : "";
+    return idx < header_row_.size() ? std::get<1>(header_row_[idx]) : "";
   }
     
   bool isNull(int column_index) const override {
@@ -212,7 +203,8 @@ public:
   }
 
 private:
-  MemoryStorage * storage_;
+  MemoryStorage* storage_;
+  std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
   std::unordered_map<std::string, std::vector<std::string> >::iterator it_;
   bool is_increment_op_;
   
