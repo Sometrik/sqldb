@@ -20,7 +20,7 @@ namespace sqldb {
     bool connect(const std::string & host_name, int port, const std::string & user_name, const std::string & password, const std::string & db_name);
     bool connect();
     
-    std::unique_ptr<SQLStatement> prepare(const std::string & query) override;
+    std::unique_ptr<SQLStatement> prepare(std::string_view query) override;
     bool ping() override;
     void begin() override;
     void commit() override;
