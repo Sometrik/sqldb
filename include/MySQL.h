@@ -47,7 +47,6 @@ namespace sqldb {
 
     MySQLStatement & bind(int value, bool is_defined = true) override;
     MySQLStatement & bind(long long value, bool is_defined = true) override;
-    MySQLStatement & bind(const ustring & value, bool is_defined = true) override;
     MySQLStatement & bind(const char * value, bool is_defined = true) override;
     MySQLStatement & bind(const std::string & value, bool is_defined = true) override;
     MySQLStatement & bind(const void * data, size_t len, bool is_defined = true) override;
@@ -57,13 +56,13 @@ namespace sqldb {
     double getDouble(int column_index, double default_value = 0.0) override;
     long long getLongLong(int column_index, long long default_value = 0LL) override;
     std::string getText(int column_index, const std::string default_value = "") override;
-    ustring getBlob(int column_index) override;
+    std::vector<uint8_t> getBlob(int column_index) override;
 
-    bool isNull(int column_index) override;
+    bool isNull(int column_index) const override;
 
     long long getLastInsertId() const override { return last_insert_id; }
     size_t getAffectedRows() const override { return rows_affected; }
-    size_t getNumFields() override { return num_bound_variables; }
+    int getNumFields() const override { return num_bound_variables; }
     
   protected:
     MySQLStatement & bindNull();
@@ -71,7 +70,7 @@ namespace sqldb {
     
   private:
     MYSQL_STMT * stmt;
-    unsigned int num_bound_variables = 0;       
+    int num_bound_variables = 0;       
     bool has_result_set = false, is_query_executed = false;
     long long last_insert_id = 0;
     my_bool is_null = 1, is_not_null = 0;

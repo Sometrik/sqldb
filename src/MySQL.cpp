@@ -175,7 +175,7 @@ MySQLStatement::execute() {
     // reserve varibles if larger than MAX
     memset(bind_data, 0, num_bound_variables * sizeof(MYSQL_BIND));
     
-    for (unsigned int i = 0; i < num_bound_variables; i++) {
+    for (int i = 0; i < num_bound_variables; i++) {
       bind_length[i] = 0;
       
       // bind[i].buffer_type = MYSQL_TYPE_STRING;
@@ -188,7 +188,7 @@ MySQLStatement::execute() {
     
     /* Bind the result buffers */
     if (mysql_stmt_bind_result(stmt, bind_data) || mysql_stmt_store_result(stmt)) {
-      for (unsigned int i = 0; i < num_bound_variables; i++) {
+      for (int i = 0; i < num_bound_variables; i++) {
 	if (bind_ptr[i]) {
 	  delete[] bind_ptr[i];
 	  bind_ptr[i] = 0;
@@ -197,7 +197,7 @@ MySQLStatement::execute() {
       throw SQLException(SQLException::EXECUTE_FAILED, mysql_stmt_error(stmt), getQuery());
     }
     
-    for (unsigned int i = 0; i < num_bound_variables; i++) {
+    for (int i = 0; i < num_bound_variables; i++) {
       if (bind_ptr[i]) {
 	delete[] bind_ptr[i];
 	bind_ptr[i] = 0;
@@ -220,7 +220,7 @@ MySQLStatement::reset() {
   has_result_set = false;
   
   memset(bind_data, 0, num_bound_variables * sizeof(MYSQL_BIND));
-  for (unsigned int i = 0; i < num_bound_variables; i++) {
+  for (int i = 0; i < num_bound_variables; i++) {
     bindNull();
   } 
   SQLStatement::reset(); // need to rereset after binds
@@ -299,11 +299,6 @@ MySQLStatement::bind(bool value, bool is_defined) {
 MySQLStatement &
 MySQLStatement::bind(const std::string & value, bool is_defined) {
   return bindData(MYSQL_TYPE_STRING, value.c_str(), value.size(), is_defined);
-}
-
-MySQLStatement &
-MySQLStatement::bind(const ustring & value, bool is_defined) {
-  return bindData(MYSQL_TYPE_BLOB, value.data(), value.size(), is_defined);
 }
 
 MySQLStatement &
@@ -455,15 +450,15 @@ MySQLStatement::getText(int column_index, const std::string default_value) {
   return s;
 }
 
-ustring
+std::vector<uint8_t>
 MySQLStatement::getBlob(int column_index) {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
 
   assert(stmt);
   
-  unsigned long int len = (int)bind_length[column_index];
+  auto len = (size_t)bind_length[column_index];
 
-  ustring s;
+  std::vector<uint8_t> s;
   
   if (bind_is_null[column_index]) {
 
@@ -484,14 +479,16 @@ MySQLStatement::getBlob(int column_index) {
     if (mysql_stmt_fetch_column(stmt, &b, column_index, 0) != 0) {
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt), getQuery());
     }
-    s = ustring((unsigned char *)tmp, len);
+    for (size_t i = 0; i < len; i++) {
+      s.push_back(tmp[i]);
+    }
   }
 
   return s;
 }
 
 bool
-MySQLStatement::isNull(int column_index) {
+MySQLStatement::isNull(int column_index) const {
   if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
   return bind_is_null[column_index];
 }
