@@ -18,9 +18,9 @@ public:
   
   MemoryStorage() { }
 
-  std::unique_ptr<Cursor> seek(const std::string & key);
+  std::unique_ptr<Cursor> seek(std::string_view key);
   std::unique_ptr<Cursor> seekBegin();
-  std::unique_ptr<Cursor> addRow(const std::string & key);
+  std::unique_ptr<Cursor> addRow(std::string_view key);
   
   std::unique_ptr<Cursor> addRow() {
     int id;
@@ -31,13 +31,13 @@ public:
     return addRow(std::to_string(id));
   }
 
-  std::unique_ptr<Cursor> incrementRow(const std::string & key);
+  std::unique_ptr<Cursor> incrementRow(std::string_view key);
 
-  void removeRow(const std::string & key);
+  void removeRow(std::string_view key);
 
-  void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) {
+  void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) {
     std::lock_guard<std::mutex> guard(mutex_);
-    header_row_.push_back(std::tuple(type, std::move(name), unique));
+    header_row_.push_back(std::tuple(type, std::string(name), unique));
   }
   
   int getNumFields() const {
@@ -110,7 +110,7 @@ public:
     }
   }
     
-  void set(int column_idx, const std::string & value, bool is_defined = true) override {
+  void set(int column_idx, string_view value, bool is_defined = true) override {
     std::lock_guard<std::mutex> guard(storage_->mutex_);
 
     while (column_idx >= static_cast<int>(pending_row_.size())) pending_row_.push_back("");
@@ -212,9 +212,9 @@ private:
 };
 
 std::unique_ptr<Cursor>
-MemoryStorage::seek(const std::string & key) {
+MemoryStorage::seek(std::string_view key) {
   std::lock_guard<std::mutex> guard(mutex_);
-  auto it = data_.find(key);
+  auto it = data_.find(std::string(key));
   if (it != data_.end()) {
     return std::make_unique<MemoryTableCursor>(this, move(it));
   } else {
@@ -234,7 +234,8 @@ MemoryStorage::seekBegin() {
 }
 
 std::unique_ptr<Cursor>
-MemoryStorage::addRow(const std::string & key) {
+MemoryStorage::addRow(std::string_view key0) {
+  std::string key(key0);
   std::lock_guard<std::mutex> guard(mutex_);
   assert(!key.empty());
   auto it = data_.find(key);
@@ -248,7 +249,8 @@ MemoryStorage::addRow(const std::string & key) {
 }
 
 std::unique_ptr<Cursor>
-MemoryStorage::incrementRow(const std::string & key) {
+MemoryStorage::incrementRow(std::string_view key0) {
+  std::string key(key0);
   std::lock_guard<std::mutex> guard(mutex_);
   
   assert(!key.empty());
@@ -263,21 +265,21 @@ MemoryStorage::incrementRow(const std::string & key) {
 }
 
 void
-MemoryStorage::removeRow(const std::string & key) {
-  data_.erase(key);
+MemoryStorage::removeRow(std::string_view key) {
+  data_.erase(std::string(key));
 }
 
 MemoryTable::MemoryTable(bool numeric_key)
   : numeric_key_(numeric_key), storage_(make_shared<MemoryStorage>()) { }
 
 void
-MemoryTable::addColumn(std::string name, sqldb::ColumnType type, bool unique) {
-  storage_->addColumn(name, type, unique);
+MemoryTable::addColumn(std::string_view name, sqldb::ColumnType type, bool unique) {
+  storage_->addColumn(std::move(name), type, unique);
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::addRow(const std::string & key) {
-  return storage_->addRow(key);
+MemoryTable::addRow(std::string_view key) {
+  return storage_->addRow(std::move(key));
 }
 
 std::unique_ptr<Cursor>
@@ -286,13 +288,13 @@ MemoryTable::addRow() {
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::incrementRow(const std::string & key) {
-  return storage_->incrementRow(key);
+MemoryTable::incrementRow(std::string_view key) {
+  return storage_->incrementRow(std::move(key));
 }
 
 void
-MemoryTable::removeRow(const std::string & key) {
-  return storage_->removeRow(key);
+MemoryTable::removeRow(std::string_view key) {
+  return storage_->removeRow(std::move(key));
 }
 
 std::unique_ptr<Cursor>
@@ -301,8 +303,8 @@ MemoryTable::seekBegin() {
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::seek(const std::string & key) {
-  return storage_->seek(key);
+MemoryTable::seek(std::string_view key) {
+  return storage_->seek(std::move(key));
 }
 
 int

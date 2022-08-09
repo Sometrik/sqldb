@@ -18,15 +18,15 @@ namespace sqldb {
 
     std::unique_ptr<Table> copy() const override { return std::make_unique<MemoryTable>(*this); }
 
-    void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) override;
+    void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) override;
     
-    std::unique_ptr<Cursor> addRow(const std::string & key) override;
+    std::unique_ptr<Cursor> addRow(std::string_view key) override;
     std::unique_ptr<Cursor> addRow() override;
-    std::unique_ptr<Cursor> incrementRow(const std::string & key) override;
-    void removeRow(const std::string & key) override;
+    std::unique_ptr<Cursor> incrementRow(std::string_view key) override;
+    void removeRow(std::string_view key) override;
     
     std::unique_ptr<Cursor> seekBegin() override;    
-    std::unique_ptr<Cursor> seek(const std::string & key) override;
+    std::unique_ptr<Cursor> seek(std::string_view key) override;
     
     int getNumFields() const override;
     int getNumRows() const;

@@ -17,7 +17,7 @@ namespace sqldb {
     MySQL() { }
     ~MySQL();
     
-    bool connect(const std::string & host_name, int port, const std::string & user_name, const std::string & password, const std::string & db_name);    
+    bool connect(const std::string & host_name, int port, const std::string & user_name, const std::string & password, const std::string & db_name);
     bool connect();
     
     std::unique_ptr<SQLStatement> prepare(const std::string & query) override;
@@ -26,7 +26,7 @@ namespace sqldb {
     void commit() override;
     void rollback() override;
 
-    size_t execute(const std::string & query) override;
+    size_t execute(std::string_view query) override;
 
     bool isConnected() const { return conn != 0; }
 
@@ -47,15 +47,14 @@ namespace sqldb {
 
     MySQLStatement & bind(int value, bool is_defined = true) override;
     MySQLStatement & bind(long long value, bool is_defined = true) override;
-    MySQLStatement & bind(const char * value, bool is_defined = true) override;
-    MySQLStatement & bind(const std::string & value, bool is_defined = true) override;
+    MySQLStatement & bind(std::string_view value, bool is_defined = true) override;
     MySQLStatement & bind(const void * data, size_t len, bool is_defined = true) override;
     MySQLStatement & bind(double value, bool is_defined = true) override;
   
     int getInt(int column_index, int default_value = 0) override;
     double getDouble(int column_index, double default_value = 0.0) override;
     long long getLongLong(int column_index, long long default_value = 0LL) override;
-    std::string getText(int column_index, const std::string default_value = "") override;
+    std::string getText(int column_index, std::string default_value = "") override;
     std::vector<uint8_t> getBlob(int column_index) override;
 
     bool isNull(int column_index) const override;

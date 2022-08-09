@@ -8,6 +8,7 @@
 #include <fstream>
 #include <vector>
 #include <cstdio>
+#include <charconv>
 
 static inline std::string normalize_nfc(const std::string & input) {
   auto r0 = utf8proc_NFC(reinterpret_cast<const unsigned char *>(input.c_str()));
@@ -22,7 +23,7 @@ static inline std::string normalize_nfc(const std::string & input) {
 using namespace sqldb;
 using namespace std;
 
-static inline vector<string> split(const string & line, char delimiter) {
+static inline vector<string> split(string_view line, char delimiter) {
   vector<string> r;
   
   if (!line.empty()) {
@@ -61,7 +62,7 @@ public:
     if (in_) {      
       cerr << "getting header\n";
       
-      string s = get_record();
+      auto s = get_record();
       
       if (delimiter_ == 0) {
 	size_t best_n = 0;
@@ -139,7 +140,7 @@ public:
 
   bool next() {
     size_t row_offset = ftell(in_) - input_buffer_.size();
-    string s = get_record();
+    auto s = get_record();
     
     if (s.empty()) {
       return false;
@@ -226,7 +227,7 @@ public:
   
   std::string getRowKey() const { return csv_->getNextRowIdx() >= 1 ? std::to_string(csv_->getNextRowIdx() - 1) : ""; }
 
-  void set(int column_idx, const std::string & value, bool is_defined = true) override {
+  void set(int column_idx, std::string_view value, bool is_defined = true) override {
     throw std::runtime_error("CSV is read-only");
   }
   void set(int column_idx, int value, bool is_defined = true) override {
@@ -265,13 +266,12 @@ CSV::getColumnName(int column_index) const {
 }
 
 unique_ptr<Cursor>
-CSV::seek(const std::string & key) {
-  size_t row;
-  try {
-    row = static_cast<size_t>(stoi(key));
-  } catch (...) {
+CSV::seek(std::string_view key) {
+  int row;
+  auto result = std::from_chars(key.data(), key.data() + key.size(), row);
+  if (result.ec == std::errc::invalid_argument) {
     return unique_ptr<CSVCursor>(nullptr);
+  } else {
+    return make_unique<CSVCursor>(csv_, row);
   }
-  
-  return make_unique<CSVCursor>(csv_, row);
 }

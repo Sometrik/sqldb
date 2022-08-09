@@ -40,9 +40,9 @@ MySQL::rollback() {
 }
 
 std::unique_ptr<SQLStatement>
-MySQL::prepare(const std::string & query) {
+MySQL::prepare(std::string_view query) {
   if (!conn) {
-    throw SQLException(SQLException::PREPARE_FAILED, "Not connected", query);
+    throw SQLException(SQLException::PREPARE_FAILED, "Not connected", std::string(query));
   }
   MYSQL_STMT * stmt = 0;
   while ( 1 ) {
@@ -52,17 +52,17 @@ MySQL::prepare(const std::string & query) {
       if (mysql_errno(conn) == 2006) {
 	continue;
       }
-      throw SQLException(SQLException::PREPARE_FAILED, mysql_error(conn), query);
+      throw SQLException(SQLException::PREPARE_FAILED, mysql_error(conn), std::string(query));
     }
-    if (mysql_stmt_prepare(stmt, query.c_str(), query.size()) != 0) {
+    if (mysql_stmt_prepare(stmt, query.data(), query.size()) != 0) {
       if (mysql_errno(conn) == 2006) {
 	continue;
       }
-      throw SQLException(SQLException::PREPARE_FAILED, mysql_error(conn), query);
+      throw SQLException(SQLException::PREPARE_FAILED, mysql_error(conn), std::string(query));
     }
     break;
   }
-  return std::make_unique<MySQLStatement>(stmt, query);
+  return std::make_unique<MySQLStatement>(stmt, std::string(query));
 }
 
 bool
@@ -108,13 +108,13 @@ MySQL::ping() {
 }
 
 size_t
-MySQL::execute(const std::string & query) {
-  if (mysql_query(conn, query.c_str()) != 0) {
+MySQL::execute(std::string_view query) {
+  if (mysql_real_query(conn, query.data(), query.size()) != 0) {
     throw SQLException(SQLException::EXECUTE_FAILED, mysql_error(conn), query);
   }
-  long long r = (long long)mysql_affected_rows(conn);
-  assert(r >= 0);
-  return (unsigned int)r;
+  auto r = mysql_affected_rows(conn);
+  assert((long long)r >= 0);
+  return r;
 }
 
 MySQLStatement::MySQLStatement(MYSQL_STMT * _stmt, const std::string & _query)
@@ -286,19 +286,14 @@ MySQLStatement::bind(double value, bool is_defined) {
 }
 
 MySQLStatement &
-MySQLStatement::bind(const char * value, bool is_defined) {
-  return bindData(MYSQL_TYPE_STRING, value, strlen(value), is_defined);
-}
-
-MySQLStatement &
 MySQLStatement::bind(bool value, bool is_defined) {
   int a = value ? 1 : 0;
   return bindData(MYSQL_TYPE_LONG, &a, sizeof(int), is_defined);
 }
 
 MySQLStatement &
-MySQLStatement::bind(const std::string & value, bool is_defined) {
-  return bindData(MYSQL_TYPE_STRING, value.c_str(), value.size(), is_defined);
+MySQLStatement::bind(std::string_view value, bool is_defined) {
+  return bindData(MYSQL_TYPE_STRING, value.data(), value.size(), is_defined);
 }
 
 MySQLStatement &
@@ -423,7 +418,7 @@ MySQLStatement::getText(int column_index, const std::string default_value) {
   
   unsigned long int len = (int)bind_length[column_index];
 
-  string s = default_value;
+  auto s = default_value;
   
   if (bind_is_null[column_index]) {
 

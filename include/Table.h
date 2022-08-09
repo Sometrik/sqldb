@@ -1,4 +1,3 @@
-
 #ifndef _SQLDB_TABLE_H_
 #define _SQLDB_TABLE_H_
 
@@ -7,6 +6,7 @@
 #include <unordered_set>
 #include <memory>
 #include <vector>
+#include <string_view>
 #include <string>
 
 namespace sqldb {
@@ -19,15 +19,15 @@ namespace sqldb {
 
     virtual bool hasNumericKey() const { return false; }
     virtual std::unique_ptr<Cursor> seekBegin() = 0;
-    virtual std::unique_ptr<Cursor> seek(const std::string & key) = 0;
+    virtual std::unique_ptr<Cursor> seek(std::string_view key) = 0;
 
-    virtual std::unique_ptr<Cursor> addRow(const std::string & key) = 0;
+    virtual std::unique_ptr<Cursor> addRow(std::string_view key) = 0;
     virtual std::unique_ptr<Cursor> addRow() = 0;
-    virtual std::unique_ptr<Cursor> incrementRow(const std::string & key) = 0;
-    virtual void removeRow(const std::string & key) = 0;
+    virtual std::unique_ptr<Cursor> incrementRow(std::string_view key) = 0;
+    virtual void removeRow(std::string_view key) = 0;
 
     virtual std::unique_ptr<Table> copy() const = 0;
-    virtual void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) = 0;
+    virtual void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) = 0;
     virtual void append(Table & other) = 0;
     virtual void clear() = 0;
 
@@ -47,7 +47,7 @@ namespace sqldb {
       return -1;
     }
 
-    int getColumnByName(const std::string & name) const {
+    int getColumnByName(std::string_view name) const {
       for (int i = getNumFields() - 1; i >= 0; i--) {
 	if (getColumnName(i) == name) return i;
       }
@@ -71,16 +71,16 @@ namespace sqldb {
       return r;
     }
     
-    void addIntColumn(std::string name) { addColumn(std::move(name), ColumnType::INT); }
-    void addInt64Column(std::string name) { addColumn(std::move(name), ColumnType::INT64); }
-    void addCharColumn(std::string name) { addColumn(std::move(name), ColumnType::CHAR); }
-    void addDateTimeColumn(std::string name) { addColumn(std::move(name), ColumnType::DATETIME); }
-    void addVarCharColumn(std::string name, bool unique = false) { addColumn(std::move(name), ColumnType::VARCHAR, unique); }
-    void addTextColumn(std::string name) { addColumn(std::move(name), ColumnType::TEXT); }
-    void addDoubleColumn(std::string name) { addColumn(std::move(name), ColumnType::DOUBLE); }
-    void addURLColumn(std::string name) { addColumn(std::move(name), ColumnType::URL); }
-    void addForeignKeyColumn(std::string name) { addColumn(std::move(name), ColumnType::FOREIGN_KEY); }
-    void addEnumColumn(std::string name) { addColumn(std::move(name), ColumnType::ENUM); }
+    void addIntColumn(std::string_view name) { addColumn(std::move(name), ColumnType::INT); }
+    void addInt64Column(std::string_view name) { addColumn(std::move(name), ColumnType::INT64); }
+    void addCharColumn(std::string_view name) { addColumn(std::move(name), ColumnType::CHAR); }
+    void addDateTimeColumn(std::string_view name) { addColumn(std::move(name), ColumnType::DATETIME); }
+    void addVarCharColumn(std::string_view name, bool unique = false) { addColumn(std::move(name), ColumnType::VARCHAR, unique); }
+    void addTextColumn(std::string_view name) { addColumn(std::move(name), ColumnType::TEXT); }
+    void addDoubleColumn(std::string_view name) { addColumn(std::move(name), ColumnType::DOUBLE); }
+    void addURLColumn(std::string_view name) { addColumn(std::move(name), ColumnType::URL); }
+    void addForeignKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FOREIGN_KEY); }
+    void addEnumColumn(std::string_view name) { addColumn(std::move(name), ColumnType::ENUM); }
   };
 };
 

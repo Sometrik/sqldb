@@ -31,11 +31,11 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
-    void addColumn(std::string name, sqldb::ColumnType type, bool unique = false) override {
+    void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) override {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> addRow(const std::string & key) override {
+    std::unique_ptr<Cursor> addRow(std::string_view key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
@@ -43,16 +43,16 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> incrementRow(const std::string & key) override {
+    std::unique_ptr<Cursor> incrementRow(std::string_view key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
-    void removeRow(const std::string & key) override {
+    void removeRow(std::string_view key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
     std::unique_ptr<Cursor> seekBegin() override { return seek("0"); }
-    std::unique_ptr<Cursor> seek(const std::string & key) override;
+    std::unique_ptr<Cursor> seek(std::string_view key) override;
     
   private:
     std::shared_ptr<CSVFile> csv_;    

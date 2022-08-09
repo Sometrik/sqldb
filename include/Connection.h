@@ -4,6 +4,7 @@
 #include <SQLStatement.h>
 
 #include <string>
+#include <string_view>
 #include <memory>
 
 namespace sqldb {
@@ -16,7 +17,7 @@ namespace sqldb {
     virtual ~Connection() { }
     Connection & operator=(const Connection & other) = delete;
     
-    virtual std::unique_ptr<sqldb::SQLStatement> prepare(const std::string & query) = 0;
+    virtual std::unique_ptr<sqldb::SQLStatement> prepare(std::string_view query) = 0;
     virtual void begin() {
       execute("BEGIN TRANSACTION");
     }
@@ -26,18 +27,18 @@ namespace sqldb {
     virtual void rollback() {
       execute("ROLLBACK");
     }
-    virtual size_t execute(const std::string & query) {
+    virtual size_t execute(std::string_view query) {
       auto stmt = prepare(query);
       return stmt->execute();
     }
     virtual bool ping() { return true; }    
     virtual bool isConnected() const = 0;
 
-    std::string quote(const std::string & str, bool is_defined = true) const {
+    std::string quote(std::string_view str, bool is_defined = true) const {
       if (!is_defined) return "NULL";
 	
       std::string output = "\"";
-      for (unsigned int i = 0; i < str.size(); i++) {
+      for (size_t i = 0; i < str.size(); i++) {
 	switch (str[i]) {
 	case '\\':
 	  output += "\\\\";

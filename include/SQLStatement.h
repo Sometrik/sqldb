@@ -13,12 +13,12 @@ namespace sqldb {
       next_bind_index = 1;
     }
 
-    virtual SQLStatement & bind(const std::string & value, bool is_defined = true) = 0;
+    virtual SQLStatement & bind(std::string_view value, bool is_defined = true) = 0;
     virtual SQLStatement & bind(double value, bool is_defined = true) = 0;
     virtual SQLStatement & bind(int value, bool is_defined = true) = 0;
-    virtual SQLStatement & bind(const char * value, bool is_defined = true) = 0;
-    virtual SQLStatement & bind(const void * data, size_t len, bool is_defined = true) = 0;
     virtual SQLStatement & bind(long long value, bool is_defined = true) = 0;
+
+    virtual SQLStatement & bind(const void * data, size_t len, bool is_defined) = 0;
 
     virtual SQLStatement & bind(bool value, bool is_defined) {
       return bind(value ? 1 : 0, is_defined);

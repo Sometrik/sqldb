@@ -52,9 +52,9 @@ public:
     }
   }
   
-  void set(int column_idx, const std::string & value, bool is_defined) override {
+  void set(int column_idx, std::string_view value, bool is_defined) override {
     int r;
-    if (is_defined) r = sqlite3_bind_text(stmt_, column_idx, value.c_str(), static_cast<int>(value.size()), SQLITE_TRANSIENT);
+    if (is_defined) r = sqlite3_bind_text(stmt_, column_idx, value.data(), static_cast<int>(value.size()), SQLITE_TRANSIENT);
     else r = sqlite3_bind_null(stmt_, column_idx);
     if (r != SQLITE_OK) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
@@ -109,12 +109,8 @@ public:
     set(getNextBindIndex(), value, is_defined);
     return *this;
   }
-  SQLiteStatement & bind(const char * value, bool is_defined) override {
-    set(getNextBindIndex(), value, is_defined);
-    return *this;
-  }
-  SQLiteStatement & bind(const std::string & value, bool is_defined) override {
-    set(getNextBindIndex(), value, is_defined);
+  SQLiteStatement & bind(std::string_view value, bool is_defined) override {
+    set(getNextBindIndex(), std::move(value), is_defined);
     return *this;
   }
   SQLiteStatement & bind(const void * data, size_t len, bool is_defined) override {
@@ -280,12 +276,12 @@ SQLite::open() {
 }
 
 std::unique_ptr<sqldb::SQLStatement>
-SQLite::prepare(const string & query) {
+SQLite::prepare(string_view query) {
   if (!db_) {
     throw SQLException(SQLException::PREPARE_FAILED);
   }
   sqlite3_stmt * stmt = 0;
-  int r = sqlite3_prepare_v2(db_, query.c_str(), -1, &stmt, 0);
+  int r = sqlite3_prepare_v2(db_, query.data(), query.size(), &stmt, 0);
   if (r != SQLITE_OK) {
     throw SQLException(SQLException::PREPARE_FAILED, sqlite3_errmsg(db_));
   }

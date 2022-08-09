@@ -63,7 +63,7 @@ namespace sqldb {
 			
     std::string getText(int column_index) { return getText(column_index, ""); }
 
-    virtual void set(int column_idx, const std::string & value, bool is_defined = true) = 0;
+    virtual void set(int column_idx, std::string_view value, bool is_defined = true) = 0;
     virtual void set(int column_idx, int value, bool is_defined = true) = 0;
     virtual void set(int column_idx, long long value, bool is_defined = true) = 0;
     virtual void set(int column_idx, double value, bool is_defined = true) = 0;
