@@ -10,6 +10,12 @@ namespace sqldb {
   class DataStream {
   public:
     DataStream() { }
+    DataStream(const DataStream & other) = delete;
+    DataStream(const DataStream && other) = delete;
+
+    DataStream & operator=(const DataStream & other) = delete;
+    DataStream & operator=(const DataStream && other) = delete;
+    
     virtual ~DataStream() { }
 
     virtual size_t execute() = 0;
@@ -67,7 +73,7 @@ namespace sqldb {
     virtual void set(int column_idx, int value, bool is_defined = true) = 0;
     virtual void set(int column_idx, long long value, bool is_defined = true) = 0;
     virtual void set(int column_idx, double value, bool is_defined = true) = 0;
-    virtual void set(int column_idx, const void * data, size_t len, bool is_defined = true) = 0;
+    virtual void set(int column_idx, const void * data, size_t len, bool is_defined) = 0;
 
     virtual long long getLastInsertId() const = 0;
   };
