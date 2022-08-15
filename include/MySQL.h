@@ -45,11 +45,11 @@ namespace sqldb {
     void reset() override;
     bool next() override;
 
-    MySQLStatement & bind(int value, bool is_defined = true) override;
-    MySQLStatement & bind(long long value, bool is_defined = true) override;
-    MySQLStatement & bind(std::string_view value, bool is_defined = true) override;
-    MySQLStatement & bind(const void * data, size_t len, bool is_defined = true) override;
-    MySQLStatement & bind(double value, bool is_defined = true) override;
+    void set(int column_idx, int value, bool is_defined = true) override;
+    void set(int column_idx, long long value, bool is_defined = true) override;
+    void set(int column_idx, std::string_view value, bool is_defined = true) override;
+    void set(int column_idx, const void * data, size_t len, bool is_defined = true) override;
+    void set(int column_idx, double value, bool is_defined = true) override;
   
     int getInt(int column_index, int default_value = 0) override;
     double getDouble(int column_index, double default_value = 0.0) override;
@@ -64,8 +64,8 @@ namespace sqldb {
     int getNumFields() const override { return num_bound_variables; }
     
   protected:
-    MySQLStatement & bindNull();
-    MySQLStatement & bindData(enum_field_types buffer_type, const void * ptr, size_t size, bool is_defined = true, bool is_unsigned = false);
+    // MySQLStatement & bindNull();
+    void setData(int column_idx, enum_field_types buffer_type, const void * ptr, size_t size, bool is_defined = true, bool is_unsigned = false);
     
   private:
     MYSQL_STMT * stmt;
@@ -76,7 +76,7 @@ namespace sqldb {
     unsigned int rows_affected = 0;
 
     MYSQL_BIND bind_data[MYSQL_MAX_BOUND_VARIABLES];
-    unsigned long bind_length[MYSQL_MAX_BOUND_VARIABLES];
+    size_t bind_length[MYSQL_MAX_BOUND_VARIABLES];
     my_bool bind_is_null[MYSQL_MAX_BOUND_VARIABLES];
     my_bool bind_error[MYSQL_MAX_BOUND_VARIABLES];
     char bind_buffer[MYSQL_MAX_BOUND_VARIABLES * MYSQL_BIND_BUFFER_SIZE];

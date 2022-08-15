@@ -110,7 +110,7 @@ MySQL::ping() {
 size_t
 MySQL::execute(std::string_view query) {
   if (mysql_real_query(conn, query.data(), query.size()) != 0) {
-    throw SQLException(SQLException::EXECUTE_FAILED, mysql_error(conn), query);
+    throw SQLException(SQLException::EXECUTE_FAILED, mysql_error(conn), string(query));
   }
   auto r = mysql_affected_rows(conn);
   assert((long long)r >= 0);
@@ -214,25 +214,23 @@ void
 MySQLStatement::reset() {
   SQLStatement::reset();
   
-  results_available = false;
   rows_affected = 0;
   is_query_executed = false;
   has_result_set = false;
   
   memset(bind_data, 0, num_bound_variables * sizeof(MYSQL_BIND));
   for (int i = 0; i < num_bound_variables; i++) {
-    bindNull();
+    set(i, 0, false);
   } 
-  SQLStatement::reset(); // need to rereset after binds
-
   // no need to reset. just rebind parameter and execute again. not tested though
 }
 
 bool
 MySQLStatement::next() {
+  SQLStatement::reset();
+  
   assert(stmt);
   
-  results_available = false;
   rows_affected = 0;
   
   if (!is_query_executed) {
@@ -243,62 +241,52 @@ MySQLStatement::next() {
     int r = mysql_stmt_fetch(stmt);
         
     if (r == 0) {
-      results_available = true;
+      results_available_ = true;
     } else if (r == MYSQL_NO_DATA) {
     } else if (r == MYSQL_DATA_TRUNCATED) {
-      results_available = true;
+      results_available_ = true;
     } else if (r) {
       throw SQLException(SQLException::EXECUTE_FAILED, mysql_stmt_error(stmt), getQuery());
     }
   }
   
-  return results_available;
+  return results_available_;
 }
 
+#if 0
 MySQLStatement &
 MySQLStatement::bindNull() {
   int a = 0;
   return bindData(MYSQL_TYPE_LONG, &a, sizeof(a), false);
 }
+#endif
 
-MySQLStatement &
-MySQLStatement::bind(int value, bool is_defined) {
+void
+MySQLStatement::set(int column_idx, int value, bool is_defined) {
   if (!is_defined) value = 0;
-  return bindData(MYSQL_TYPE_LONG, &value, sizeof(value), is_defined); 
+  setData(column_idx, MYSQL_TYPE_LONG, &value, sizeof(value), is_defined); 
 }
 
-MySQLStatement &
-MySQLStatement::bind(long long value, bool is_defined) {
+void
+MySQLStatement::set(int column_idx, long long value, bool is_defined) {
   if (!is_defined) value = 0;
-  return bindData(MYSQL_TYPE_LONGLONG, &value, sizeof(value), is_defined);
+  setData(column_idx, MYSQL_TYPE_LONGLONG, &value, sizeof(value), is_defined);
 }
 
-MySQLStatement &
-MySQLStatement::bind(unsigned int value, bool is_defined) {
-  if (!is_defined) value = 0;
-  unsigned int v = value;
-  return bindData(MYSQL_TYPE_LONG, &v, sizeof(v), is_defined, true);
+void
+MySQLStatement::set(int column_idx, double value, bool is_defined) {
+  if (!is_defined) value = 0.0;
+  setData(column_idx, MYSQL_TYPE_DOUBLE, &value, sizeof(value), is_defined);
 }
 
-MySQLStatement &
-MySQLStatement::bind(double value, bool is_defined) {
-  return bindData(MYSQL_TYPE_DOUBLE, &value, sizeof(value), is_defined);
+void
+MySQLStatement::set(int column_idx, std::string_view value, bool is_defined) {
+  setData(column_idx, MYSQL_TYPE_STRING, value.data(), value.size(), is_defined);
 }
 
-MySQLStatement &
-MySQLStatement::bind(bool value, bool is_defined) {
-  int a = value ? 1 : 0;
-  return bindData(MYSQL_TYPE_LONG, &a, sizeof(int), is_defined);
-}
-
-MySQLStatement &
-MySQLStatement::bind(std::string_view value, bool is_defined) {
-  return bindData(MYSQL_TYPE_STRING, value.data(), value.size(), is_defined);
-}
-
-MySQLStatement &
-MySQLStatement::bind(const void * data, size_t len, bool is_defined) {
-  return bindData(MYSQL_TYPE_BLOB, data, len, is_defined);
+void
+MySQLStatement::set(int column_idx, const void * data, size_t len, bool is_defined) {
+  setData(column_idx, MYSQL_TYPE_BLOB, data, len, is_defined);
 }
 
 int
@@ -321,31 +309,6 @@ MySQLStatement::getInt(int column_index, int default_value) {
     b.buffer_length = sizeof(a);
     b.length = &dummy1; 
     b.is_null = &dummy2;
-    if (mysql_stmt_fetch_column(stmt, &b, column_index, 0) != 0) {
-      throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt), getQuery());
-    }
-  }
-
-  return a;
-}
-
-unsigned int
-MySQLStatement::getUInt(int column_index, unsigned int default_value) {
-  if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "", getQuery());
-  assert(stmt);
-  unsigned long a = default_value;
-  if (bind_is_null[column_index]) {
-  } else if (bind_length[column_index]) {
-    long unsigned int dummy1;
-    my_bool dummy2;
-    MYSQL_BIND b;
-    memset(&b, 0, sizeof(MYSQL_BIND));
-    b.buffer_type = MYSQL_TYPE_LONG;
-    b.buffer = (char *)&a;  
-    b.buffer_length = sizeof(a);
-    b.length = &dummy1; 
-    b.is_null = &dummy2;
-    b.is_unsigned = true;
     if (mysql_stmt_fetch_column(stmt, &b, column_index, 0) != 0) {
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt), getQuery());
     }
@@ -416,8 +379,7 @@ MySQLStatement::getText(int column_index, const std::string default_value) {
 
   assert(stmt);
   
-  unsigned long int len = (int)bind_length[column_index];
-
+  auto len = bind_length[column_index];
   auto s = default_value;
   
   if (bind_is_null[column_index]) {
@@ -439,7 +401,7 @@ MySQLStatement::getText(int column_index, const std::string default_value) {
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt), getQuery());
     }
 	
-    s = string(tmp, len);
+    s = string(tmp.get(), len);
   }
   
   return s;
@@ -488,29 +450,26 @@ MySQLStatement::isNull(int column_index) const {
   return bind_is_null[column_index];
 }
 
-MySQLStatement &
-MySQLStatement::bindData(enum_field_types buffer_type, const void * ptr, size_t size, bool is_defined, bool is_unsigned) {
-  int index = getNextBindIndex();
-  index--;
-  if (index < 0 || index >= num_bound_variables) {
+void
+MySQLStatement::setData(int column_idx, enum_field_types buffer_type, const void * ptr, size_t size, bool is_defined, bool is_unsigned) {
+  if (column_idx < 0 || column_idx >= num_bound_variables) {
     throw SQLException(SQLException::BAD_BIND_INDEX, "", getQuery());
   }
   char * buffer;
   if (size <= MYSQL_BIND_BUFFER_SIZE) {
-    buffer = &bind_buffer[index * MYSQL_BIND_BUFFER_SIZE];
+    buffer = &bind_buffer[column_idx * MYSQL_BIND_BUFFER_SIZE];
   } else {
-    delete[] bind_ptr[index];
-    buffer = bind_ptr[index] = new char[size];
+    delete[] bind_ptr[column_idx];
+    buffer = bind_ptr[column_idx] = new char[size];
   }
   memcpy(buffer, ptr, size);
-  bind_data[index].buffer_type = buffer_type;
-  bind_data[index].buffer = buffer;
-  bind_data[index].buffer_length = size;
-  bind_data[index].is_unsigned = is_unsigned;
+  bind_data[column_idx].buffer_type = buffer_type;
+  bind_data[column_idx].buffer = buffer;
+  bind_data[column_idx].buffer_length = size;
+  bind_data[column_idx].is_unsigned = is_unsigned;
   if (is_defined) {
-    bind_data[index].is_null = &is_not_null;
+    bind_data[column_idx].is_null = &is_not_null;
   } else {
-    bind_data[index].is_null = &is_null;
+    bind_data[column_idx].is_null = &is_null;
   }
-  return *this;
 }
