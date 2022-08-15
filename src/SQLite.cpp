@@ -30,8 +30,9 @@ public:
     return getAffectedRows();
   }
   bool next() override {
+    SQLStatement::reset();
     step();
-    return results_available;
+    return results_available_;
   }
   void reset() override {
     SQLStatement::reset();
@@ -54,8 +55,8 @@ public:
   
   void set(int column_idx, std::string_view value, bool is_defined) override {
     int r;
-    if (is_defined) r = sqlite3_bind_text(stmt_, column_idx, value.data(), static_cast<int>(value.size()), SQLITE_TRANSIENT);
-    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (is_defined) r = sqlite3_bind_text(stmt_, column_idx + 1, value.data(), static_cast<int>(value.size()), SQLITE_TRANSIENT);
+    else r = sqlite3_bind_null(stmt_, column_idx + 1);
     if (r != SQLITE_OK) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
     }
@@ -63,8 +64,8 @@ public:
 
   void set(int column_idx, int value, bool is_defined) override {
     int r;
-    if (is_defined) r = sqlite3_bind_int(stmt_, column_idx, value);
-    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (is_defined) r = sqlite3_bind_int(stmt_, column_idx + 1, value);
+    else r = sqlite3_bind_null(stmt_, column_idx + 1);
     if (r != SQLITE_OK) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
     }
@@ -72,8 +73,8 @@ public:
 
   void set(int column_idx, double value, bool is_defined) override {
     int r;
-    if (is_defined) r = sqlite3_bind_double(stmt_, column_idx, value);
-    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (is_defined) r = sqlite3_bind_double(stmt_, column_idx + 1, value);
+    else r = sqlite3_bind_null(stmt_, column_idx + 1);
     if (r != SQLITE_OK) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
     }
@@ -81,8 +82,8 @@ public:
 
   void set(int column_idx, long long value, bool is_defined) override {
     int r;
-    if (is_defined) r = sqlite3_bind_int64(stmt_, column_idx, (sqlite_int64)value);
-    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (is_defined) r = sqlite3_bind_int64(stmt_, column_idx + 1, (sqlite_int64)value);
+    else r = sqlite3_bind_null(stmt_, column_idx + 1);
     if (r != SQLITE_OK) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
     }
@@ -90,32 +91,11 @@ public:
     
   void set(int column_idx, const void * data, size_t len, bool is_defined) {
     int r;
-    if (is_defined) r = sqlite3_bind_blob(stmt_, column_idx, data, len, SQLITE_TRANSIENT);
-    else r = sqlite3_bind_null(stmt_, column_idx);
+    if (is_defined) r = sqlite3_bind_blob(stmt_, column_idx + 1, data, len, SQLITE_TRANSIENT);
+    else r = sqlite3_bind_null(stmt_, column_idx + 1);
     if (r != SQLITE_OK) {
       throw SQLException(SQLException::BIND_FAILED, sqlite3_errmsg(db_));
     }
-  }
-
-  SQLiteStatement & bind(int value, bool is_defined) override {
-    set(getNextBindIndex(), value, is_defined);
-    return *this;
-  }
-  SQLiteStatement & bind(long long value, bool is_defined) override {
-    set(getNextBindIndex(), value, is_defined);
-    return *this;
-  }  
-  SQLiteStatement & bind(double value, bool is_defined) override {
-    set(getNextBindIndex(), value, is_defined);
-    return *this;
-  }
-  SQLiteStatement & bind(std::string_view value, bool is_defined) override {
-    set(getNextBindIndex(), std::move(value), is_defined);
-    return *this;
-  }
-  SQLiteStatement & bind(const void * data, size_t len, bool is_defined) override {
-    set(getNextBindIndex(), data, len, is_defined);
-    return *this;
   }
   
   int getInt(int column_index, int default_value = 0) override {
@@ -163,7 +143,7 @@ public:
   }
     
   bool isNull(int column_index) const override {
-    if (!results_available) {
+    if (!results_available_) {
       return true;
     } else {
       return stmt_ ? sqlite3_column_type(stmt_, column_index) == SQLITE_NULL : true;
@@ -291,13 +271,13 @@ SQLite::prepare(string_view query) {
 
 void
 SQLiteStatement::step() {
-  results_available = false;
+  results_available_ = false;
 
   while ( 1 ) {
     int r = sqlite3_step(stmt_);
     switch (r) {
     case SQLITE_ROW:
-      results_available = true;
+      results_available_ = true;
       return;
       
     case SQLITE_DONE:
