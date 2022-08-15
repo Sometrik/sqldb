@@ -7,36 +7,53 @@ namespace sqldb {
   class SQLStatement : public DataStream {
   public:
     SQLStatement() { }
-    SQLStatement(const std::string & _query) : query(_query) { }
+    SQLStatement(std::string query) : query_(std::move(query)) { }
 
     virtual void reset() {
-      next_bind_index = 1;
+      results_available_ = false;
+      next_bind_index_ = 0;
     }
 
-    virtual SQLStatement & bind(std::string_view value, bool is_defined = true) = 0;
-    virtual SQLStatement & bind(double value, bool is_defined = true) = 0;
-    virtual SQLStatement & bind(int value, bool is_defined = true) = 0;
-    virtual SQLStatement & bind(long long value, bool is_defined = true) = 0;
+    virtual bool next() = 0;
 
-    virtual SQLStatement & bind(const void * data, size_t len, bool is_defined) = 0;
+    SQLStatement & bind(int value, bool is_defined = true) {
+      set(getNextBindIndex(), value, is_defined);
+      return *this;
+    }
+    SQLStatement & bind(long long value, bool is_defined = true) {
+      set(getNextBindIndex(), value, is_defined);
+      return *this;
+    }  
+    SQLStatement & bind(double value, bool is_defined = true) {
+      set(getNextBindIndex(), value, is_defined);
+      return *this;
+    }
+    SQLStatement & bind(std::string_view value, bool is_defined = true) {
+      set(getNextBindIndex(), std::move(value), is_defined);
+      return *this;
+    }
+    SQLStatement & bind(const void * data, size_t len, bool is_defined) {
+      set(getNextBindIndex(), data, len, is_defined);
+      return *this;
+    }
 
-    virtual SQLStatement & bind(bool value, bool is_defined) {
+    SQLStatement & bind(bool value, bool is_defined = true) {
       return bind(value ? 1 : 0, is_defined);
     }
 
     virtual size_t getAffectedRows() const = 0;
   
-    bool resultsAvailable() const { return results_available; }
-    const std::string & getQuery() const { return query; }
+    bool resultsAvailable() const { return results_available_; }
+    const std::string & getQuery() const { return query_; }
 
   protected:
-    int getNextBindIndex() { return next_bind_index++; }
+    int getNextBindIndex() { return next_bind_index_++; }
     
-    bool results_available = false;
+    bool results_available_ = false;
 
   private:
-    std::string query;
-    int next_bind_index = 1;
+    std::string query_;
+    int next_bind_index_ = 0;
   };
 };
 
