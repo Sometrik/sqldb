@@ -33,7 +33,10 @@ public:
 
   std::unique_ptr<Cursor> incrementRow(std::string_view key);
 
-  void removeRow(std::string_view key);
+  void removeRow(std::string_view key) {
+    std::lock_guard<std::mutex> guard(mutex_);
+    data_.erase(std::string(key));
+  }
 
   void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) {
     std::lock_guard<std::mutex> guard(mutex_);
@@ -262,11 +265,6 @@ MemoryStorage::incrementRow(std::string_view key0) {
   
   assert(it != data_.end());
   return std::make_unique<MemoryTableCursor>(this, move(it), true);
-}
-
-void
-MemoryStorage::removeRow(std::string_view key) {
-  data_.erase(std::string(key));
 }
 
 MemoryTable::MemoryTable(bool numeric_key)
