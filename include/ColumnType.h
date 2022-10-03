@@ -17,6 +17,27 @@ namespace sqldb {
       ENUM,
       IMAGE // image (blob)
       };
+
+  static inline bool is_numeric(ColumnType type) {
+    switch (type) {
+    case ColumnType::INT:
+    case ColumnType::INT64:
+    case ColumnType::BOOL:
+    case ColumnType::DATETIME:
+    case ColumnType::DOUBLE:
+      return true;
+    case ColumnType::UNDEF:
+    case ColumnType::CHAR:
+    case ColumnType::VARCHAR:
+    case ColumnType::TEXT:
+    case ColumnType::URL:
+    case ColumnType::FOREIGN_KEY:
+    case ColumnType::ENUM:
+    case ColumnType::IMAGE:
+      break;
+    }
+    return false;
+  }
 };
 
 #endif

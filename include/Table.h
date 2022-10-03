@@ -81,27 +81,6 @@ namespace sqldb {
     void addURLColumn(std::string_view name) { addColumn(std::move(name), ColumnType::URL); }
     void addForeignKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FOREIGN_KEY); }
     void addEnumColumn(std::string_view name) { addColumn(std::move(name), ColumnType::ENUM); }
-
-    bool isNumeric(int column_index) const {
-      switch (getColumnType(column_index)) {
-      case ColumnType::INT:
-      case ColumnType::INT64:
-      case ColumnType::BOOL:
-      case ColumnType::DATETIME:
-      case ColumnType::DOUBLE:
-	return true;
-      case ColumnType::UNDEF:
-      case ColumnType::CHAR:
-      case ColumnType::VARCHAR:
-      case ColumnType::TEXT:
-      case ColumnType::URL:
-      case ColumnType::FOREIGN_KEY:
-      case ColumnType::ENUM:
-      case ColumnType::IMAGE:
-	break;
-      }
-      return false;
-    }
   };
 };
 
