@@ -93,18 +93,22 @@ public:
     std::lock_guard<std::mutex> guard(storage_->mutex_);
     auto & data = storage_->data_;
     if (it_ != data.end()) {
-      if (is_increment_op_ && !it_->second.empty()) {
-	for (size_t i = 0; i < it_->second.size(); i++) {
-	  auto & v0 = it_->second[i];
+      auto & v = it_->second;
+      if (is_increment_op_) {
+	for (auto [ key, value ] : pending_row_) {
+	  if (v.size() <= static_cast<size_t>(key)) v.resize(static_cast<size_t>(key) + 1);
+	  auto & v0 = v[key];
 	  if (v0.empty()) {
-	    v0 = pending_row_[i];
-	  } else if (getColumnType(i) != sqldb::ColumnType::FOREIGN_KEY && getColumnType(i) != sqldb::ColumnType::TEXT &&
-		     getColumnType(i) != sqldb::ColumnType::VARCHAR) {
-	    v0 = std::to_string(stoi(v0) + stoi(pending_row_[i]));
+	    v0 = value;
+	  } else if (is_numeric(getColumnType(key))) {
+	    v0 = std::to_string(stoi(v0) + stoi(value));
 	  }
-	}
+	}      
       } else {
-	it_->second = pending_row_;
+	for (auto [ key, value ] : pending_row_) {
+	  if (v.size() <= static_cast<size_t>(key)) v.resize(static_cast<size_t>(key) + 1);
+	  v[key] = value;
+	}
       }
       pending_row_.clear();
       return 1;
@@ -114,10 +118,12 @@ public:
   }
     
   void set(int column_idx, string_view value, bool is_defined = true) override {
-    std::lock_guard<std::mutex> guard(storage_->mutex_);
-
-    while (column_idx >= static_cast<int>(pending_row_.size())) pending_row_.push_back("");
-    pending_row_[column_idx] = is_defined ? value : "";
+    if (is_defined) {
+      std::lock_guard<std::mutex> guard(storage_->mutex_);      
+      pending_row_[column_idx] = value;
+    } else {
+      pending_row_.erase(column_idx);
+    }
   }
 
   void set(int column_idx, int value, bool is_defined = true) override { set(column_idx, std::to_string(value), is_defined); }
@@ -211,7 +217,7 @@ private:
   std::unordered_map<std::string, std::vector<std::string> >::iterator it_;
   bool is_increment_op_;
   
-  std::vector<std::string> pending_row_;
+  std::unordered_map<int, std::string> pending_row_;
 };
 
 std::unique_ptr<Cursor>
@@ -237,33 +243,18 @@ MemoryStorage::seekBegin() {
 }
 
 std::unique_ptr<Cursor>
-MemoryStorage::addRow(std::string_view key0) {
-  std::string key(key0);
-  std::lock_guard<std::mutex> guard(mutex_);
+MemoryStorage::addRow(std::string_view key) {
   assert(!key.empty());
-  auto it = data_.find(key);
-  if (it == data_.end()) {
-    data_[key] = std::vector<std::string>();
-    it = data_.find(key);
-  }
-  
-  assert(it != data_.end());
+  std::lock_guard<std::mutex> guard(mutex_);
+  auto [ it, is_new ] = data_.insert(std::pair(std::string(key), std::vector<std::string>()));
   return std::make_unique<MemoryTableCursor>(this, move(it));
 }
-
+  
 std::unique_ptr<Cursor>
-MemoryStorage::incrementRow(std::string_view key0) {
-  std::string key(key0);
-  std::lock_guard<std::mutex> guard(mutex_);
-  
+MemoryStorage::incrementRow(std::string_view key) {
   assert(!key.empty());
-  auto it = data_.find(key);
-  if (it == data_.end()) {
-    data_[key] = std::vector<std::string>();
-    it = data_.find(key);
-  }
-  
-  assert(it != data_.end());
+  std::lock_guard<std::mutex> guard(mutex_);
+  auto [it, is_new] = data_.insert(std::pair(std::string(key), vector<std::string>()));
   return std::make_unique<MemoryTableCursor>(this, move(it), true);
 }
 
