@@ -3,8 +3,6 @@
 
 #include <Table.h>
 
-#include <vector>
-#include <unordered_map>
 #include <memory>
 
 namespace sqldb {
