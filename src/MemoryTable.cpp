@@ -1,6 +1,8 @@
 #include <MemoryTable.h>
 #include <Cursor.h>
 
+#include <map>
+#include <unordered_map>
 #include <cassert>
 #include <iostream>
 #include <mutex>
@@ -76,7 +78,8 @@ public:
   }
 
 private:
-  std::unordered_map<std::string, std::vector<std::string> > data_;
+  // use ordered map for iterator stability
+  std::map<std::string, std::vector<std::string> > data_;
   std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
   long long auto_increment_ = 0;
   mutable std::mutex mutex_;
@@ -85,13 +88,22 @@ private:
 class sqldb::MemoryTableCursor : public Cursor {
 public:
   MemoryTableCursor(MemoryStorage * storage,
-		    std::unordered_map<std::string, std::vector<std::string> >::iterator it,
+		    std::map<std::string, std::vector<std::string> >::iterator it,
 		    bool is_increment_op = false)
     : storage_(storage), header_row_(storage->header_row_), it_(it), is_increment_op_(is_increment_op) { }
+  MemoryTableCursor(MemoryStorage * storage,
+		    std::string pending_key,
+		    bool is_increment_op = false)
+    : storage_(storage), header_row_(storage->header_row_), pending_key_(std::move(pending_key)), is_increment_op_(is_increment_op) { }
 
   size_t execute() override {
     std::lock_guard<std::mutex> guard(storage_->mutex_);
     auto & data = storage_->data_;
+    if (!pending_key_.empty()) {
+      auto [ it, is_new ] = data.insert(std::pair(std::move(pending_key_), std::vector<std::string>()));
+      it_ = std::move(it);
+      pending_key_.clear();
+    }
     if (it_ != data.end()) {
       auto & v = it_->second;
       if (is_increment_op_) {
@@ -214,10 +226,10 @@ public:
 private:
   MemoryStorage* storage_;
   std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
-  std::unordered_map<std::string, std::vector<std::string> >::iterator it_;
-  bool is_increment_op_;
-  
+  std::map<std::string, std::vector<std::string> >::iterator it_;
+  std::string pending_key_;
   std::unordered_map<int, std::string> pending_row_;
+  bool is_increment_op_;
 };
 
 std::unique_ptr<Cursor>
@@ -246,8 +258,7 @@ std::unique_ptr<Cursor>
 MemoryStorage::addRow(std::string_view key) {
   assert(!key.empty());
   std::lock_guard<std::mutex> guard(mutex_);
-  auto [ it, is_new ] = data_.insert(std::pair(std::string(key), std::vector<std::string>()));
-  return std::make_unique<MemoryTableCursor>(this, move(it));
+  return std::make_unique<MemoryTableCursor>(this, string(key));
 }
   
 std::unique_ptr<Cursor>
