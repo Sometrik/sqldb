@@ -4,7 +4,6 @@
 
 #include <utf8proc.h>
 
-#include <iostream>
 #include <fstream>
 #include <vector>
 #include <cstdio>
@@ -55,12 +54,12 @@ static inline vector<string> split(string_view line, char delimiter) {
 class sqldb::CSVFile {
 public:
   CSVFile(std::string csv_file) : csv_file_(move(csv_file)) {
-    cerr << "opening " << csv_file_ << "\n";
+    // cerr << "opening " << csv_file_ << "\n";
     
     in_ = fopen(csv_file_.c_str(), "rb");
     
     if (in_) {      
-      cerr << "getting header\n";
+      // cerr << "getting header\n";
       
       auto s = get_record();
       
@@ -78,11 +77,11 @@ public:
 	    delimiter_ = d;
 	  }
 	}
-	cerr << "delimiter = " << delimiter_ << "\n";
+	// cerr << "delimiter = " << delimiter_ << "\n";
       }
       header_row_ = split(s, delimiter_);
     } else {
-      cerr << "failed to open\n";
+      // cerr << "failed to open\n";
     }
   }
   
@@ -254,6 +253,7 @@ private:
 
 CSV::CSV(std::string csv_file) : csv_(make_shared<CSVFile>(move(csv_file))) { }
 CSV::CSV(const CSV & other) : csv_(make_shared<CSVFile>(*other.csv_)) { }
+CSV::CSV(CSV && other) : csv_(move(other.csv_)) { }
 
 int
 CSV::getNumFields() const {

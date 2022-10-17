@@ -2,6 +2,7 @@
 #define _SQLDB_CSV_H_
 
 #include "Table.h"
+#include "Cursor.h"
 
 #include <stdexcept>
 
@@ -12,6 +13,7 @@ namespace sqldb {
   public:
     CSV(std::string csv_file);
     CSV(const CSV & other);
+    CSV(CSV && other);
 
     bool hasNumericKey() const override { return true; }
     std::unique_ptr<Table> copy() const override { return std::make_unique<CSV>(*this); }

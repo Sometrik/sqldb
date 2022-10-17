@@ -2,7 +2,6 @@
 
 #include <cstring>
 #include <cassert>
-#include <iostream>
 #include <vector>
 
 #include "SQLException.h"
@@ -47,7 +46,7 @@ public:
       return;
       
     default:
-      cerr << "unknown error: " << r << endl;
+      // cerr << "unknown error: " << r << endl;
       assert(0);
       return;
     }
@@ -195,7 +194,7 @@ SQLite::~SQLite() {
   if (db_) {
     int r = sqlite3_close(db_);
     if (r) {
-      cerr << "error while closing, r = " << r << endl;
+      // cerr << "error while closing, r = " << r << endl;
     }
   }
 }
@@ -248,7 +247,7 @@ SQLite::open() {
 				  latin1_compare
 				  );
     if (r) {
-      cerr << "failed to create NOCASE collation\n";
+      // cerr << "failed to create NOCASE collation\n";
     }
   }
 
@@ -284,7 +283,7 @@ SQLiteStatement::step() {
       return;
 
     case SQLITE_BUSY:
-      cerr << "database is busy\n";
+      // cerr << "database is busy\n";
       break;
       
     case SQLITE_ERROR: throw SQLException(SQLException::DATABASE_ERROR, sqlite3_errmsg(db_));
@@ -293,7 +292,7 @@ SQLiteStatement::step() {
     case SQLITE_MISMATCH: throw SQLException(SQLException::MISMATCH, sqlite3_errmsg(db_));
       
     default:
-      cerr << "unknown error: " << r << endl;
+      // cerr << "unknown error: " << r << endl;
       assert(0);
       return;
     }

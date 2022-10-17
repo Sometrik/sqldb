@@ -1,7 +1,6 @@
 #include <MySQL.h>
 
 #include <cassert>
-#include <iostream>
 #include <cstring>
 
 #include <SQLException.h>
@@ -30,7 +29,6 @@ MySQL::commit() {
 
 void
 MySQL::rollback() {
-  cerr << "rollback()\n";
   if (mysql_rollback(conn) != 0) {
     mysql_autocommit(conn, 1); // enable autocommit
     throw SQLException(SQLException::ROLLBACK_FAILED);

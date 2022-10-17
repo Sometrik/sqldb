@@ -16,7 +16,7 @@ namespace sqldb {
   public:
     Table() { }
     virtual ~Table() { }
-
+    
     virtual bool hasNumericKey() const { return false; }
     virtual std::unique_ptr<Cursor> seekBegin() = 0;
     virtual std::unique_ptr<Cursor> seek(std::string_view key) = 0;
