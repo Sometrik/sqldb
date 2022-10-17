@@ -4,7 +4,6 @@
 #include <map>
 #include <unordered_map>
 #include <cassert>
-#include <iostream>
 #include <mutex>
 
 using namespace std;
@@ -131,7 +130,6 @@ public:
     
   void set(int column_idx, string_view value, bool is_defined = true) override {
     if (is_defined) {
-      std::lock_guard<std::mutex> guard(storage_->mutex_);      
       pending_row_[column_idx] = value;
     } else {
       pending_row_.erase(column_idx);
@@ -257,16 +255,13 @@ MemoryStorage::seekBegin() {
 std::unique_ptr<Cursor>
 MemoryStorage::addRow(std::string_view key) {
   assert(!key.empty());
-  std::lock_guard<std::mutex> guard(mutex_);
   return std::make_unique<MemoryTableCursor>(this, string(key));
 }
   
 std::unique_ptr<Cursor>
 MemoryStorage::incrementRow(std::string_view key) {
   assert(!key.empty());
-  std::lock_guard<std::mutex> guard(mutex_);
-  auto [it, is_new] = data_.insert(std::pair(std::string(key), vector<std::string>()));
-  return std::make_unique<MemoryTableCursor>(this, move(it), true);
+  return std::make_unique<MemoryTableCursor>(this, string(key), true);
 }
 
 MemoryTable::MemoryTable(bool numeric_key)
