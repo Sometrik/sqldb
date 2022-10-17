@@ -2,6 +2,7 @@
 #define _SQLDB_TABLE_H_
 
 #include "ColumnType.h"
+#include "Cursor.h"
 
 #include <unordered_set>
 #include <memory>
@@ -81,6 +82,19 @@ namespace sqldb {
     void addURLColumn(std::string_view name) { addColumn(std::move(name), ColumnType::URL); }
     void addForeignKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FOREIGN_KEY); }
     void addEnumColumn(std::string_view name) { addColumn(std::move(name), ColumnType::ENUM); }
+
+    std::string dumpRow(std::string_view key) {
+      std::string r;
+      if (auto cursor = seek(key)) {
+	for (int i = 0; i < getNumFields(); i++) {
+	  if (i) r += ";";
+	  r += cursor->getText(i);
+	}
+      } else {
+	r += "not found";
+      }
+      return r;
+    }
   };
 };
 
