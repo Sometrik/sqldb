@@ -90,7 +90,7 @@ public:
   }
   
   bool isNull(int row_index, int column_index) const {
-    return false; // DBFIsAttributeNULL(h_, row_index, column_index);
+    return DBFIsAttributeNULL(h_, row_index, column_index);
   }
   
   int getRecordCount() { return record_count_; }
