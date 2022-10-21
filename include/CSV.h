@@ -11,7 +11,7 @@ namespace sqldb {
   
   class CSV : public Table {
   public:
-    CSV(std::string csv_file);
+    CSV(std::string csv_file, bool has_records = true);
     CSV(const CSV & other);
     CSV(CSV && other);
 

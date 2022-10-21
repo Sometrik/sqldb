@@ -34,8 +34,9 @@ static inline vector<string> split(string_view line, char delimiter) {
       auto c = line[i];
       if (c == '\r') {
 	// ignore carriage returns
-      } else if (!in_quote && c == '"') in_quote = true;
-      else if (in_quote) {
+      } else if (!in_quote && c == '"') {
+	in_quote = true;
+      } else if (in_quote) {
 	if (c == '\\') current += line[++i];
 	else if (c == '"') in_quote = false;
 	else current += c;
@@ -53,33 +54,45 @@ static inline vector<string> split(string_view line, char delimiter) {
 
 class sqldb::CSVFile {
 public:
-  CSVFile(std::string csv_file) : csv_file_(move(csv_file)) {
-    // cerr << "opening " << csv_file_ << "\n";
-    
+  CSVFile(std::string csv_file, bool has_records) : csv_file_(move(csv_file)) {
+    open(has_records);
+  }
+
+  void open(bool has_records) {
     in_ = fopen(csv_file_.c_str(), "rb");
     
     if (in_) {      
       // cerr << "getting header\n";
       
-      auto s = get_record();
-      
-      if (delimiter_ == 0) {
-	size_t best_n = 0;
-	for (int i = 0; i < 3; i++) {
-	  char d;
-	  if (i == 0) d = ',';
-	  else if (i == 1) d = ';';
-	  else d = '\t';
-	  auto tmp = split(s, d);
-	  auto n = tmp.size();
-	  if (n > best_n) {
-	    best_n = n;
-	    delimiter_ = d;
+      if (has_records) {
+	auto s = get_record();
+
+	// autodetect delimiter
+	if (!delimiter_) {
+	  size_t best_n = 0;
+	  char best_delimiter = 0;
+	  for (int i = 0; i < 3; i++) {
+	    char d;
+	    if (i == 0) d = ',';
+	    else if (i == 1) d = ';';
+	    else d = '\t';
+	    auto tmp = split(s, d);
+	    auto n = tmp.size();
+	    if (n > best_n) {
+	      best_n = n;
+	      best_delimiter = d;
+	    }
 	  }
+	  // if there are no delimiters in header, use no delimiter
+	  if (best_n) {
+	    delimiter_ = best_delimiter;
+	  }	
+	  // cerr << "delimiter = " << delimiter_ << "\n";
 	}
-	// cerr << "delimiter = " << delimiter_ << "\n";
+	header_row_ = split(s, delimiter_);
+      } else {
+	header_row_.push_back("Content");
       }
-      header_row_ = split(s, delimiter_);
     } else {
       // cerr << "failed to open\n";
     }
@@ -251,7 +264,7 @@ private:
   std::shared_ptr<CSVFile> csv_;
 };
 
-CSV::CSV(std::string csv_file) : csv_(make_shared<CSVFile>(move(csv_file))) { }
+CSV::CSV(std::string csv_file, bool has_records) : csv_(make_shared<CSVFile>(move(csv_file), has_records)) { }
 CSV::CSV(const CSV & other) : csv_(make_shared<CSVFile>(*other.csv_)) { }
 CSV::CSV(CSV && other) : csv_(move(other.csv_)) { }
 
