@@ -4,7 +4,10 @@
 #include "Table.h"
 #include "Cursor.h"
 
+#include <iomanip>
+
 #include <stdexcept>
+#include <sstream>
 
 namespace sqldb {
   class CSVFile;
@@ -15,7 +18,6 @@ namespace sqldb {
     CSV(const CSV & other);
     CSV(CSV && other);
 
-    bool hasNumericKey() const override { return true; }
     std::unique_ptr<Table> copy() const override { return std::make_unique<CSV>(*this); }
        
     int getNumFields() const override;
@@ -53,8 +55,15 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> seekBegin() override { return seek("0"); }
+    std::unique_ptr<Cursor> seekBegin() override { return seek(0); }
     std::unique_ptr<Cursor> seek(std::string_view key) override;
+    std::unique_ptr<Cursor> seek(int row);
+
+    static std::string formatKey(int row) {
+      std::stringstream stream;
+      stream << std::setfill('0') << std::setw(8) << std::hex << row;
+      return stream.str();
+    }
     
   private:
     std::shared_ptr<CSVFile> csv_;    

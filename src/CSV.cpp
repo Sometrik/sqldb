@@ -237,7 +237,7 @@ public:
     return csv_->getText(column_index, "").empty();    
   }
   
-  std::string getRowKey() const { return csv_->getNextRowIdx() >= 1 ? std::to_string(csv_->getNextRowIdx() - 1) : ""; }
+  std::string getRowKey() const { return csv_->getNextRowIdx() >= 1 ? CSV::formatKey(csv_->getNextRowIdx() - 1) : ""; }
 
   void set(int column_idx, std::string_view value, bool is_defined = true) override {
     throw std::runtime_error("CSV is read-only");
@@ -281,10 +281,15 @@ CSV::getColumnName(int column_index) const {
 unique_ptr<Cursor>
 CSV::seek(std::string_view key) {
   int row;
-  auto result = std::from_chars(key.data(), key.data() + key.size(), row);
+  auto result = std::from_chars(key.data(), key.data() + key.size(), row, 16);
   if (result.ec == std::errc::invalid_argument) {
     return unique_ptr<CSVCursor>(nullptr);
   } else {
-    return make_unique<CSVCursor>(csv_, row);
+    return seek(row);
   }
+}
+
+unique_ptr<Cursor>
+CSV::seek(int row) {
+  return make_unique<CSVCursor>(csv_, row);
 }
