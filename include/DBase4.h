@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <memory>
 #include <unordered_map>
+#include <sstream>
 
 namespace sqldb {
   class DBase4File;
