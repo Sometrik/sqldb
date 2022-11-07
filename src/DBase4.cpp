@@ -27,7 +27,7 @@ using namespace sqldb;
 
 class sqldb::DBase4File {
 public:
-  DBase4File(std::string fn) : fn_(std::move(fn)) {
+  DBase4File(std::string fn, int primary_key) : fn_(std::move(fn)), primary_key_(primary_key) {
     h_ = DBFOpen(fn_.c_str(), "rb");
     if (h_) {
       initialize();
@@ -90,7 +90,16 @@ public:
   }
   
   bool isNull(int row_index, int column_index) const {
-    return DBFIsAttributeNULL(h_, row_index, column_index);
+    return row_index < 0 || row_index >= record_count_ || DBFIsAttributeNULL(h_, row_index, column_index);
+  }
+
+  std::string getRowKey(int row) {
+    if (row >= 0) {
+      if (primary_key_ == -1) return DBase4::formatKey(row);
+      else return getText(row, primary_key_, "");
+    } else {
+      return "";
+    }
   }
   
   int getRecordCount() { return record_count_; }
@@ -138,6 +147,8 @@ private:
   }
 
   std::string fn_;
+  int primary_key_;
+  
   DBFHandle h_;
   std::vector<std::string> column_names_;
   std::vector<ColumnType> column_types_;
@@ -191,7 +202,9 @@ public:
     return dbf_->isNull(current_row_, column_index);
   }
   
-  std::string getRowKey() const { return current_row_ >= 0 ? std::to_string(current_row_) : ""; }
+  std::string getRowKey() const {
+    return dbf_->getRowKey(current_row_);
+  }
 
   void set(int column_idx, std::string_view value, bool is_defined = true) override {
     throw std::runtime_error("dBase4 file is read-only");
@@ -219,7 +232,7 @@ private:
   int current_row_;
 };
 
-DBase4::DBase4(std::string filename) : dbf_(make_shared<DBase4File>(move(filename))) { }
+DBase4::DBase4(std::string filename, int primary_key) : dbf_(make_shared<DBase4File>(move(filename), primary_key)) { }
 DBase4::DBase4(const DBase4 & other) : dbf_(make_shared<DBase4File>(*other.dbf_)) { }
 DBase4::DBase4(DBase4 && other) : dbf_(move(other.dbf_)) { }
 
@@ -240,11 +253,20 @@ DBase4::getColumnType(int column_index) const {
 
 unique_ptr<Cursor>
 DBase4::seek(std::string_view key) {
-  int row = 0;
-  auto result = std::from_chars(key.data(), key.data() + key.size(), row);
-  if (result.ec == std::errc::invalid_argument || row < 0 || row >= dbf_->getRecordCount()) {
-    return unique_ptr<DBase4Cursor>(nullptr);
+  if (!primary_key_mapping_.empty()) {
+    auto it = primary_key_mapping_.find(string(key));
+    if (it != primary_key_mapping_.end()) return seek(it->second);
   } else {
-    return make_unique<DBase4Cursor>(dbf_, row);
+    int row = 0;
+    auto result = std::from_chars(key.data(), key.data() + key.size(), row, 16);
+    if (result.ec != std::errc::invalid_argument && row >= 0 && row < dbf_->getRecordCount()) {
+      return seek(row);
+    }
   }
+  return unique_ptr<DBase4Cursor>(nullptr);
+}
+
+unique_ptr<Cursor>
+DBase4::seek(int row) {
+  return make_unique<DBase4Cursor>(dbf_, row);
 }
