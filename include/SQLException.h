@@ -24,18 +24,18 @@ namespace sqldb {
       OPEN_FAILED,
       MISMATCH      
     };
-  SQLException(ErrorType _type) : type(_type) { }
-  SQLException(ErrorType _type, const std::string & _errormsg)
-    : type(_type), errormsg(_errormsg) { }
-  SQLException(ErrorType _type, const std::string & _errormsg, const std::string & _query)
-    : type(_type), errormsg(_errormsg), query(_query) { }
+  SQLException(ErrorType type) noexcept : type_(type) { }
+  SQLException(ErrorType type, const std::string & errormsg) noexcept
+    : type_(type), errormsg_(errormsg) { }
+  SQLException(ErrorType type, const std::string & errormsg, const std::string & query) noexcept
+    : type_(type), errormsg_(errormsg), query_(query) { }
 
-    ErrorType getType() const { return type; }
-    const std::string & getErrorMsg() const { return errormsg; }
-    const std::string & getQuery() const { return query; }
+    ErrorType getType() const noexcept { return type_; }
+    const std::string & getErrorMsg() const noexcept { return errormsg_; }
+    const std::string & getQuery() const noexcept { return query_; }
     
-    const char * what() const throw() {
-      switch (type) {
+    const char * what() const noexcept override {
+      switch (type_) {
       case PREPARE_FAILED: return "Prepare failed";
       case EXECUTE_FAILED: return "Execute failed";
       case BIND_FAILED: return "Bind failed";
@@ -56,8 +56,8 @@ namespace sqldb {
     }
         
   private:
-    ErrorType type;
-    std::string errormsg, query;
+    ErrorType type_;
+    std::string errormsg_, query_;
   };
 };
 
