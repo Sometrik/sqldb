@@ -41,7 +41,7 @@ namespace sqldb {
     virtual void commit() { }
     virtual void rollback() { }
     
-    int getColumnByNames(const std::unordered_set<std::string> & names) const {
+    int getColumnByNames(std::unordered_set<std::string> names) const {
       for (int i = getNumFields() - 1; i >= 0; i--) {
 	if (names.count(getColumnName(i))) return i;
       }
@@ -62,7 +62,7 @@ namespace sqldb {
       return -1;
     }
 
-    std::vector<int> getColumnsByNames(const std::unordered_set<std::string> & names) const {
+    std::vector<int> getColumnsByNames(std::unordered_set<std::string> names) const {
       std::vector<int> r;
       for (int i = getNumFields() - 1; i >= 0; i--) {
 	if (names.count(getColumnName(i))) {
@@ -82,7 +82,8 @@ namespace sqldb {
     void addURLColumn(std::string_view name) { addColumn(std::move(name), ColumnType::URL); }
     void addForeignKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FOREIGN_KEY); }
     void addEnumColumn(std::string_view name) { addColumn(std::move(name), ColumnType::ENUM); }
-
+    void addBoolColumn(std::string_view name) { addColumn(std::move(name), ColumnType::BOOL); }
+    
     std::string dumpRow(std::string_view key) {
       std::string r;
       if (auto cursor = seek(key)) {
