@@ -123,7 +123,7 @@ public:
   }
   std::string getText(int column_index, std::string default_value) override {
     if (!isNull(column_index)) {
-      const char * s = (const char *)sqlite3_column_text(stmt_, column_index);
+      auto s = (const char *)sqlite3_column_text(stmt_, column_index);
       if (s) {
 	return string(s);
       }
@@ -161,11 +161,8 @@ public:
   }
 
   std::string getColumnName(int column_index) const override {
-    if (column_index >= 0 && column_index < static_cast<int>(column_names_.size())) {
-      return column_names_[column_index];
-    } else {
-      return "";
-    }
+    auto idx = static_cast<size_t>(column_index);
+    return idx < column_names_.size() ? column_names_[idx] : "";
   }
 
 protected:
