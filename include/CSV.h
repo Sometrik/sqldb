@@ -21,9 +21,9 @@ namespace sqldb {
     std::unique_ptr<Table> copy() const override { return std::make_unique<CSV>(*this); }
        
     int getNumFields() const override;
-    std::string getColumnName(int column_index) const;
+    std::string getColumnName(int column_index) const override;
 
-    ColumnType getColumnType(int column_index) const {
+    ColumnType getColumnType(int column_index) const override {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
     }
 

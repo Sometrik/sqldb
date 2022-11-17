@@ -15,7 +15,7 @@ namespace sqldb {
     ~SQLite();
   
     std::unique_ptr<sqldb::SQLStatement> prepare(std::string_view query) override;
-    bool isConnected() const { return true; }
+    bool isConnected() const override { return true; }
     
   private:
     bool open();

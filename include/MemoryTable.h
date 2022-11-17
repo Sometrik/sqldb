@@ -30,8 +30,8 @@ namespace sqldb {
     int getNumRows() const;
     
     ColumnType getColumnType(int column_index) const override;
-    std::string getColumnName(int column_index) const;
-    bool isColumnUnique(int column_index) const;
+    std::string getColumnName(int column_index) const override;
+    bool isColumnUnique(int column_index) const override;
     
     void append(Table & other) override;
 
