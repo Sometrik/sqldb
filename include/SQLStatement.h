@@ -14,8 +14,6 @@ namespace sqldb {
       next_bind_index_ = 0;
     }
 
-    virtual bool next() = 0;
-
     SQLStatement & bind(int value, bool is_defined = true) {
       set(getNextBindIndex(), value, is_defined);
       return *this;
