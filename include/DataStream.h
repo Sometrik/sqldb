@@ -22,15 +22,14 @@ namespace sqldb {
 
     virtual std::vector<uint8_t> getBlob(int column_index) = 0;
     virtual std::string getText(int column_index, std::string default_value) = 0;
-
     virtual bool isNull(int column_index) const = 0;
     virtual int getNumFields() const = 0;
     virtual bool next() = 0;
+    virtual std::string getColumnName(int column_index) const = 0;
 
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
     }
-    virtual std::string getColumnName(int column_index) const { return ""; }
     
     virtual bool getBool(int column_index, bool default_value = false) {
       return getInt(column_index, default_value ? 1 : 0) ? true : false;
