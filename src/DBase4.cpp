@@ -201,8 +201,12 @@ public:
   bool isNull(int column_index) const override {
     return dbf_->isNull(current_row_, column_index);
   }
-  
-  std::string getRowKey() const {
+
+  std::string getColumnName(int column_index) const override {
+    return dbf_->getColumnName(column_index);
+  }
+
+  std::string getRowKey() const override {
     return dbf_->getRowKey(current_row_);
   }
 
