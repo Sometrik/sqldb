@@ -198,7 +198,15 @@ private:
 	  continue;
 	}
       }
-      return "";
+
+      // If the last row is not \n terminated, return it anyway
+      if (!input_buffer_.empty()) {
+	auto rec = input_buffer_;
+	input_buffer_.clear();
+	return normalize_nfc(rec);
+      } else {
+	return "";
+      }
     }
   }
     
@@ -235,6 +243,10 @@ public:
   
   bool isNull(int column_index) const override {
     return csv_->getText(column_index, "").empty();    
+  }
+
+  std::string getColumnName(int column_index) const override {
+    return csv_->getColumnName(column_index);
   }
   
   std::string getRowKey() const { return csv_->getNextRowIdx() >= 1 ? CSV::formatKey(csv_->getNextRowIdx() - 1) : ""; }
