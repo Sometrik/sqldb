@@ -2,14 +2,8 @@
 #define _SQLDB_MYSQL_H_
 
 #include "Connection.h"
-#include "SQLStatement.h"
 
 #include <mysql.h>
-#include <vector>
-
-#define MYSQL_MAX_BOUND_VARIABLES 255
-#define MYSQL_BIND_BUFFER_SIZE 0x10000
-// #define MYSQL_BIND_BUFFER_SIZE 64
 
 namespace sqldb {
   class MySQL : public Connection {
@@ -34,53 +28,6 @@ namespace sqldb {
     MYSQL * conn = 0;
     std::string host_name, user_name, password, db_name;
     int port = 0;
-  };
-
-  class MySQLStatement : public SQLStatement {
-  public:
-    MySQLStatement(MYSQL_STMT * _stmt, const std::string & _query);
-    ~MySQLStatement();
-    
-    size_t execute() override;
-    void reset() override;
-    bool next() override;
-
-    void set(int column_idx, int value, bool is_defined = true) override;
-    void set(int column_idx, long long value, bool is_defined = true) override;
-    void set(int column_idx, std::string_view value, bool is_defined = true) override;
-    void set(int column_idx, const void * data, size_t len, bool is_defined = true) override;
-    void set(int column_idx, double value, bool is_defined = true) override;
-  
-    int getInt(int column_index, int default_value = 0) override;
-    double getDouble(int column_index, double default_value = 0.0) override;
-    long long getLongLong(int column_index, long long default_value = 0LL) override;
-    std::string getText(int column_index, std::string default_value = "") override;
-    std::vector<uint8_t> getBlob(int column_index) override;
-
-    bool isNull(int column_index) const override;
-
-    long long getLastInsertId() const override { return last_insert_id; }
-    size_t getAffectedRows() const override { return rows_affected; }
-    int getNumFields() const override { return num_bound_variables; }
-    
-  protected:
-    // MySQLStatement & bindNull();
-    void setData(int column_idx, enum_field_types buffer_type, const void * ptr, size_t size, bool is_defined = true, bool is_unsigned = false);
-    
-  private:
-    MYSQL_STMT * stmt;
-    int num_bound_variables = 0;       
-    bool has_result_set = false, is_query_executed = false;
-    long long last_insert_id = 0;
-    my_bool is_null = 1, is_not_null = 0;
-    unsigned int rows_affected = 0;
-
-    MYSQL_BIND bind_data[MYSQL_MAX_BOUND_VARIABLES];
-    size_t bind_length[MYSQL_MAX_BOUND_VARIABLES];
-    my_bool bind_is_null[MYSQL_MAX_BOUND_VARIABLES];
-    my_bool bind_error[MYSQL_MAX_BOUND_VARIABLES];
-    char bind_buffer[MYSQL_MAX_BOUND_VARIABLES * MYSQL_BIND_BUFFER_SIZE];
-    char * bind_ptr[MYSQL_MAX_BOUND_VARIABLES];
   };
 };
 
