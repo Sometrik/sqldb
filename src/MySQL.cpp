@@ -39,7 +39,7 @@ public:
   size_t getAffectedRows() const override { return rows_affected; }
   int getNumFields() const override { return num_bound_variables; }
 
-  std::string sqldb::DataStream::getColumnName(int column_idx) const {
+  std::string getColumnName(int column_idx) const {
     // TODO
     return "";
   }
@@ -118,7 +118,7 @@ MySQL::prepare(std::string_view query) {
   return std::make_unique<MySQLStatement>(stmt, std::string(query));
 }
 
-bool
+void
 MySQL::connect(const string & _host_name, int _port, const string & _user_name, const string & _password, const string & _db_name) {
   host_name = _host_name;
   port = _port;
@@ -126,29 +126,27 @@ MySQL::connect(const string & _host_name, int _port, const string & _user_name, 
   password = _password;
   db_name = _db_name;
   
-  return connect();
+  connect();
 }
 
-bool
+void
 MySQL::connect() {
   if (conn) mysql_close(conn);
   conn = mysql_init(NULL);
   if (!conn) {
-    return false;
+    throw SQLException(SQLException::INIT_FAILED);
   }
 
   int flags = CLIENT_FOUND_ROWS; 
 
   if (!mysql_real_connect(conn, host_name.c_str(), user_name.c_str(), password.c_str(), db_name.c_str(), port, 0, flags)) {
-    const char * errmsg = mysql_error(conn);
+    auto errmsg = mysql_error(conn);
     mysql_close(conn);
     conn = 0;
-    return false;
+    throw SQLException(SQLException::CONNECTION_FAILED, errmsg);
   }
   
   execute("SET NAMES utf8mb4");
-  
-  return true;
 }
 
 bool

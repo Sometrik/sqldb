@@ -11,8 +11,8 @@ namespace sqldb {
     MySQL() { }
     ~MySQL();
     
-    bool connect(const std::string & host_name, int port, const std::string & user_name, const std::string & password, const std::string & db_name);
-    bool connect();
+    void connect(const std::string & host_name, int port, const std::string & user_name, const std::string & password, const std::string & db_name);
+    void connect();
     
     std::unique_ptr<SQLStatement> prepare(std::string_view query) override;
     bool ping() override;

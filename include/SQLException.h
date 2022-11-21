@@ -8,7 +8,9 @@ namespace sqldb {
   class SQLException : public std::exception {
   public:
     enum ErrorType {
-      PREPARE_FAILED = 1,
+      INIT_FAILED = 1,
+      CONNECTION_FAILED,
+      PREPARE_FAILED,
       EXECUTE_FAILED,
       BIND_FAILED,
       QUERY_TIMED_OUT,
@@ -36,6 +38,8 @@ namespace sqldb {
     
     const char * what() const noexcept override {
       switch (type_) {
+      case INIT_FAILED: return "Init failed";
+      case CONNECTION_FAILED: return "Connection failed";
       case PREPARE_FAILED: return "Prepare failed";
       case EXECUTE_FAILED: return "Execute failed";
       case BIND_FAILED: return "Bind failed";
