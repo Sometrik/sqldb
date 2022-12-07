@@ -74,6 +74,10 @@ namespace sqldb {
     virtual void set(int column_idx, double value, bool is_defined = true) = 0;
     virtual void set(int column_idx, const void * data, size_t len, bool is_defined) = 0;
 
+    virtual void set(int column_idx, float value, bool is_defined = true) {
+      set(column_idx, static_cast<double>(value), is_defined);
+    }
+
     virtual long long getLastInsertId() const = 0;
   };
 };

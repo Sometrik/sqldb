@@ -11,6 +11,7 @@ namespace sqldb {
       VARCHAR, // single line of text
       TEXT, // multiple lines of text
       DATETIME,
+      FLOAT,
       DOUBLE,
       URL,
       FOREIGN_KEY,
@@ -24,6 +25,7 @@ namespace sqldb {
     case ColumnType::INT64:
     case ColumnType::BOOL:
     case ColumnType::DATETIME:
+    case ColumnType::FLOAT:
     case ColumnType::DOUBLE:
       return true;
     case ColumnType::UNDEF:

@@ -78,6 +78,7 @@ namespace sqldb {
     void addDateTimeColumn(std::string_view name) { addColumn(std::move(name), ColumnType::DATETIME); }
     void addVarCharColumn(std::string_view name, bool unique = false) { addColumn(std::move(name), ColumnType::VARCHAR, unique); }
     void addTextColumn(std::string_view name) { addColumn(std::move(name), ColumnType::TEXT); }
+    void addFloatColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FLOAT); }
     void addDoubleColumn(std::string_view name) { addColumn(std::move(name), ColumnType::DOUBLE); }
     void addURLColumn(std::string_view name) { addColumn(std::move(name), ColumnType::URL); }
     void addForeignKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FOREIGN_KEY); }
