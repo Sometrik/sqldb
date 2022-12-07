@@ -36,7 +36,7 @@ public:
     }
   }
 
-  DBase4File(const DBase4File & other) : fn_(other.fn_) {
+  DBase4File(const DBase4File & other) : fn_(other.fn_), primary_key_(other.primary_key_) {
     h_ = DBFOpen(fn_.c_str(), "rb");
     if (h_) {
       initialize();
