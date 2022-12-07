@@ -34,7 +34,7 @@ namespace sqldb {
     virtual bool ping() { return true; }    
     virtual bool isConnected() const = 0;
 
-    std::string quote(std::string_view str, bool is_defined = true) const {
+    static std::string quote(std::string_view str, bool is_defined = true) {
       if (!is_defined) return "NULL";
 	
       std::string output = "\"";
@@ -72,27 +72,27 @@ namespace sqldb {
       return output;
     }
 
-    std::string quote(const long long v, bool is_defined = true) const {
+    static std::string quote(const long long v, bool is_defined = true) {
       if (!is_defined) return "NULL";
       return std::to_string(v);      
     }
 
-    std::string quote(const int v, bool is_defined = true) const {
+    static std::string quote(const int v, bool is_defined = true) {
       if (!is_defined) return "NULL";
       return std::to_string(v);      
     }
     
-    std::string quote(const unsigned short v, bool is_defined = true) const {
+    static std::string quote(const unsigned short v, bool is_defined = true) {
       if (!is_defined) return "NULL";
       return std::to_string(v);      
     }
 
-    std::string quote(const float v, bool is_defined = true) const {
+    static std::string quote(const float v, bool is_defined = true) {
       if (!is_defined) return "NULL";
       return std::to_string(v);      
     }
 
-    std::string quote(const double v, bool is_defined = true) const {
+    static std::string quote(const double v, bool is_defined = true) {
       if (!is_defined) return "NULL";
       return std::to_string(v);      
     }
