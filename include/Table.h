@@ -81,7 +81,7 @@ namespace sqldb {
     void addFloatColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FLOAT); }
     void addDoubleColumn(std::string_view name) { addColumn(std::move(name), ColumnType::DOUBLE); }
     void addURLColumn(std::string_view name) { addColumn(std::move(name), ColumnType::URL); }
-    void addForeignKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FOREIGN_KEY); }
+    void addHierarchicalKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::HIERARCHICAL_KEY); }
     void addEnumColumn(std::string_view name) { addColumn(std::move(name), ColumnType::ENUM); }
     void addBoolColumn(std::string_view name) { addColumn(std::move(name), ColumnType::BOOL); }
     
