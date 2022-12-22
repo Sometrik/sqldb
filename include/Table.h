@@ -22,10 +22,11 @@ namespace sqldb {
     virtual std::unique_ptr<Cursor> seekBegin() = 0;
     virtual std::unique_ptr<Cursor> seek(std::string_view key) = 0;
 
-    virtual std::unique_ptr<Cursor> addRow(std::string_view key) = 0;
-    virtual std::unique_ptr<Cursor> addRow() = 0;
-    virtual std::unique_ptr<Cursor> incrementRow(std::string_view key) = 0;
-    virtual void removeRow(std::string_view key) = 0;
+    virtual std::unique_ptr<Cursor> insert(std::string_view key) = 0;
+    virtual std::unique_ptr<Cursor> insert() = 0;
+    virtual std::unique_ptr<Cursor> increment(std::string_view key) = 0;
+    virtual std::unique_ptr<Cursor> update(std::string_view key) = 0;
+    virtual void remove(std::string_view key) = 0;
 
     virtual std::unique_ptr<Table> copy() const = 0;
     virtual void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) = 0;

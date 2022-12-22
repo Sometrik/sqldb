@@ -18,10 +18,11 @@ namespace sqldb {
 
     void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) override;
     
-    std::unique_ptr<Cursor> addRow(std::string_view key) override;
-    std::unique_ptr<Cursor> addRow() override;
-    std::unique_ptr<Cursor> incrementRow(std::string_view key) override;
-    void removeRow(std::string_view key) override;
+    std::unique_ptr<Cursor> insert(std::string_view key) override;
+    std::unique_ptr<Cursor> insert() override;
+    std::unique_ptr<Cursor> increment(std::string_view key) override;
+    std::unique_ptr<Cursor> update(std::string_view key) override;
+    void remove(std::string_view key) override;
     
     std::unique_ptr<Cursor> seekBegin() override;    
     std::unique_ptr<Cursor> seek(std::string_view key) override;

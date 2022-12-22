@@ -21,20 +21,20 @@ public:
 
   std::unique_ptr<Cursor> seek(std::string_view key);
   std::unique_ptr<Cursor> seekBegin();
-  std::unique_ptr<Cursor> addRow(std::string_view key);
+  std::unique_ptr<Cursor> insertOrUpdate(std::string_view key);
   
-  std::unique_ptr<Cursor> addRow() {
+  std::unique_ptr<Cursor> insertOrUpdate() {
     int id;
     {
       std::lock_guard<std::mutex> guard(mutex_);
       id = ++auto_increment_;
     }
-    return addRow(std::to_string(id));
+    return insertOrUpdate(std::to_string(id));
   }
 
-  std::unique_ptr<Cursor> incrementRow(std::string_view key);
+  std::unique_ptr<Cursor> increment(std::string_view key);
 
-  void removeRow(std::string_view key) {
+  void remove(std::string_view key) {
     std::lock_guard<std::mutex> guard(mutex_);
     data_.erase(std::string(key));
   }
@@ -253,13 +253,13 @@ MemoryStorage::seekBegin() {
 }
 
 std::unique_ptr<Cursor>
-MemoryStorage::addRow(std::string_view key) {
+MemoryStorage::insertOrUpdate(std::string_view key) {
   assert(!key.empty());
   return std::make_unique<MemoryTableCursor>(this, string(key));
 }
   
 std::unique_ptr<Cursor>
-MemoryStorage::incrementRow(std::string_view key) {
+MemoryStorage::increment(std::string_view key) {
   assert(!key.empty());
   return std::make_unique<MemoryTableCursor>(this, string(key), true);
 }
@@ -273,23 +273,28 @@ MemoryTable::addColumn(std::string_view name, sqldb::ColumnType type, bool uniqu
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::addRow(std::string_view key) {
-  return storage_->addRow(std::move(key));
+MemoryTable::insert(std::string_view key) {
+  return storage_->insertOrUpdate(std::move(key));
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::addRow() {
-  return storage_->addRow();
+MemoryTable::insert() {
+  return storage_->insertOrUpdate();
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::incrementRow(std::string_view key) {
-  return storage_->incrementRow(std::move(key));
+MemoryTable::increment(std::string_view key) {
+  return storage_->increment(std::move(key));
+}
+
+std::unique_ptr<Cursor>
+MemoryTable::update(std::string_view key) {
+  return storage_->insertOrUpdate(std::move(key));
 }
 
 void
-MemoryTable::removeRow(std::string_view key) {
-  return storage_->removeRow(std::move(key));
+MemoryTable::remove(std::string_view key) {
+  return storage_->remove(std::move(key));
 }
 
 std::unique_ptr<Cursor>
@@ -337,7 +342,7 @@ MemoryTable::append(Table & other) {
   
   if (auto cursor = other.seekBegin()) {
     do {
-      auto my_cursor = addRow(cursor->getRowKey());	  
+      auto my_cursor = insert(cursor->getRowKey());	  
       for (int i = 0; i < cursor->getNumFields(); i++) {
 	my_cursor->set(i, cursor->getText(i));
       }

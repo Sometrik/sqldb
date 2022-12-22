@@ -39,19 +39,23 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> addRow(std::string_view key) override {
+    std::unique_ptr<Cursor> insert(std::string_view key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> addRow() override {
+    std::unique_ptr<Cursor> insert() override {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> incrementRow(std::string_view key) override {
+    std::unique_ptr<Cursor> increment(std::string_view key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
-    void removeRow(std::string_view key) override {
+    std::unique_ptr<Cursor> update(std::string_view key) override {
+      throw std::runtime_error("CSV is read-only");
+    }
+    
+    void remove(std::string_view key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
