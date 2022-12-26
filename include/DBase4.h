@@ -4,11 +4,9 @@
 #include "Table.h"
 #include "Cursor.h"
 
-#include <iomanip>
 #include <stdexcept>
 #include <memory>
 #include <unordered_map>
-#include <sstream>
 
 namespace sqldb {
   class DBase4File;
@@ -37,7 +35,7 @@ namespace sqldb {
       throw std::runtime_error("dBase4 is read-only");
     }
 
-    std::unique_ptr<Cursor> insert(std::string_view key) override {
+    std::unique_ptr<Cursor> insert(const Key & key) override {
       throw std::runtime_error("dBase4 is read-only");
     }
 
@@ -45,29 +43,23 @@ namespace sqldb {
       throw std::runtime_error("dBase4 is read-only");
     }
 
-    std::unique_ptr<Cursor> increment(std::string_view key) override {
+    std::unique_ptr<Cursor> increment(const Key & key) override {
       throw std::runtime_error("dBase4 is read-only");
     }
 
-    std::unique_ptr<Cursor> update(std::string_view key) override {
+    std::unique_ptr<Cursor> update(const Key & key) override {
       throw std::runtime_error("dBase4 is read-only");
     }
 
-    void remove(std::string_view key) override {
+    void remove(const Key & key) override {
       throw std::runtime_error("dBase4 is read-only");
     }
 
     std::unique_ptr<Cursor> seekBegin() override { return seek(0); }
-    std::unique_ptr<Cursor> seek(std::string_view key) override;
+    std::unique_ptr<Cursor> seek(const Key & key) override;
     std::unique_ptr<Cursor> seek(int row);
 
     void setPrimaryKeyMapping(std::unordered_map<std::string, int> m) { primary_key_mapping_ = std::move(m); }
-
-    static std::string formatKey(int row) {
-      std::stringstream stream;
-      stream << std::setfill('0') << std::setw(8) << std::hex << row;
-      return stream.str();
-    }
 
   private:    
     std::shared_ptr<DBase4File> dbf_;

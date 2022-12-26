@@ -8,6 +8,7 @@
 #include <vector>
 #include <cstdio>
 #include <charconv>
+#include <cassert>
 
 static inline std::string normalize_nfc(const std::string & input) {
   auto r0 = utf8proc_NFC(reinterpret_cast<const unsigned char *>(input.c_str()));
@@ -249,7 +250,11 @@ public:
     return csv_->getColumnName(column_index);
   }
   
-  std::string getRowKey() const { return csv_->getNextRowIdx() >= 1 ? CSV::formatKey(csv_->getNextRowIdx() - 1) : ""; }
+  Key getRowKey() const {
+    Key key;
+    if (csv_->getNextRowIdx() >= 1) key.formatHex(csv_->getNextRowIdx() - 1);
+    return key;
+  }
 
   void set(int column_idx, std::string_view value, bool is_defined = true) override {
     throw std::runtime_error("CSV is read-only");
@@ -291,7 +296,9 @@ CSV::getColumnName(int column_index) const {
 }
 
 unique_ptr<Cursor>
-CSV::seek(std::string_view key) {
+CSV::seek(const Key & key0) {
+  assert(key0.size() == 1);
+  auto key = key0.getValue();
   int row;
   auto result = std::from_chars(key.data(), key.data() + key.size(), row, 16);
   if (result.ec == std::errc::invalid_argument) {

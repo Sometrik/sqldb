@@ -2,13 +2,14 @@
 #define _SQLDB_CURSOR_H_
 
 #include "DataStream.h"
+#include "Key.h"
 
 namespace sqldb {
   class Cursor : public DataStream {
   public:
     Cursor() { }
 
-    virtual std::string getRowKey() const = 0;
+    virtual Key getRowKey() const = 0;
   };
 };
 

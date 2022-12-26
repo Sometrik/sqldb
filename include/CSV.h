@@ -4,10 +4,7 @@
 #include "Table.h"
 #include "Cursor.h"
 
-#include <iomanip>
-
 #include <stdexcept>
-#include <sstream>
 
 namespace sqldb {
   class CSVFile;
@@ -39,7 +36,7 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> insert(std::string_view key) override {
+    std::unique_ptr<Cursor> insert(const Key & key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
@@ -47,27 +44,21 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> increment(std::string_view key) override {
+    std::unique_ptr<Cursor> increment(const Key & key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> update(std::string_view key) override {
+    std::unique_ptr<Cursor> update(const Key & key) override {
       throw std::runtime_error("CSV is read-only");
     }
     
-    void remove(std::string_view key) override {
+    void remove(const Key & key) override {
       throw std::runtime_error("CSV is read-only");
     }
 
     std::unique_ptr<Cursor> seekBegin() override { return seek(0); }
-    std::unique_ptr<Cursor> seek(std::string_view key) override;
+    std::unique_ptr<Cursor> seek(const Key & key) override;
     std::unique_ptr<Cursor> seek(int row);
-
-    static std::string formatKey(int row) {
-      std::stringstream stream;
-      stream << std::setfill('0') << std::setw(8) << std::hex << row;
-      return stream.str();
-    }
     
   private:
     std::shared_ptr<CSVFile> csv_;    

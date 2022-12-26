@@ -93,13 +93,13 @@ public:
     return row_index < 0 || row_index >= record_count_ || DBFIsAttributeNULL(h_, row_index, column_index);
   }
 
-  std::string getRowKey(int row) {
+  Key getRowKey(int row) {
+    Key key;
     if (row >= 0) {
-      if (primary_key_ == -1) return DBase4::formatKey(row);
-      else return getText(row, primary_key_, "");
-    } else {
-      return "";
+      if (primary_key_ == -1) key.formatHex(row);
+      else key.setValue(getText(row, primary_key_, ""));
     }
+    return key;
   }
   
   int getRecordCount() { return record_count_; }
@@ -206,7 +206,7 @@ public:
     return dbf_->getColumnName(column_index);
   }
 
-  std::string getRowKey() const override {
+  Key getRowKey() const override {
     return dbf_->getRowKey(current_row_);
   }
 
@@ -256,9 +256,11 @@ DBase4::getColumnType(int column_index) const {
 }
 
 unique_ptr<Cursor>
-DBase4::seek(std::string_view key) {
+DBase4::seek(const Key & key0) {
+  assert(key0.size() == 1);
+  auto key = key0.getValue();
   if (!primary_key_mapping_.empty()) {
-    auto it = primary_key_mapping_.find(string(key));
+    auto it = primary_key_mapping_.find(key);
     if (it != primary_key_mapping_.end()) return seek(it->second);
   } else {
     int row = 0;

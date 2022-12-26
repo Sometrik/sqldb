@@ -19,24 +19,24 @@ public:
   
   MemoryStorage() { }
 
-  std::unique_ptr<Cursor> seek(std::string_view key);
+  std::unique_ptr<Cursor> seek(const Key & key);
   std::unique_ptr<Cursor> seekBegin();
-  std::unique_ptr<Cursor> insertOrUpdate(std::string_view key);
+  std::unique_ptr<Cursor> insertOrUpdate(const Key & key);
   
   std::unique_ptr<Cursor> insertOrUpdate() {
-    int id;
+    Key key;
     {
       std::lock_guard<std::mutex> guard(mutex_);
-      id = ++auto_increment_;
+      key.formatDec(++auto_increment_);
     }
-    return insertOrUpdate(std::to_string(id));
+    return insertOrUpdate(key);
   }
 
-  std::unique_ptr<Cursor> increment(std::string_view key);
+  std::unique_ptr<Cursor> increment(const Key & key);
 
-  void remove(std::string_view key) {
+  void remove(const Key & key) {
     std::lock_guard<std::mutex> guard(mutex_);
-    data_.erase(std::string(key));
+    data_.erase(key);
   }
 
   void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) {
@@ -78,7 +78,7 @@ public:
 
 private:
   // use ordered map for iterator stability
-  std::map<std::string, std::vector<std::string> > data_;
+  std::map<Key, std::vector<std::string> > data_;
   std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
   long long auto_increment_ = 0;
   mutable std::mutex mutex_;
@@ -87,11 +87,11 @@ private:
 class sqldb::MemoryTableCursor : public Cursor {
 public:
   MemoryTableCursor(MemoryStorage * storage,
-		    std::map<std::string, std::vector<std::string> >::iterator it,
+		    std::map<Key, std::vector<std::string> >::iterator it,
 		    bool is_increment_op = false)
     : storage_(storage), header_row_(storage->header_row_), it_(it), is_increment_op_(is_increment_op) { }
   MemoryTableCursor(MemoryStorage * storage,
-		    std::string pending_key,
+		    Key pending_key,
 		    bool is_increment_op = false)
     : storage_(storage), header_row_(storage->header_row_), pending_key_(std::move(pending_key)), is_increment_op_(is_increment_op) { }
 
@@ -99,7 +99,7 @@ public:
     std::lock_guard<std::mutex> guard(storage_->mutex_);
     auto & data = storage_->data_;
     if (!pending_key_.empty()) {
-      auto [ it, is_new ] = data.insert(std::pair(std::move(pending_key_), std::vector<std::string>()));
+      auto [ it, is_new ] = data.emplace(std::move(pending_key_), std::vector<std::string>());
       it_ = std::move(it);
       pending_key_.clear();
     }
@@ -139,7 +139,7 @@ public:
   void set(int column_idx, int value, bool is_defined = true) override { set(column_idx, std::to_string(value), is_defined); }
   void set(int column_idx, long long value, bool is_defined = true) override { set(column_idx, std::to_string(value), is_defined); }
   void set(int column_idx, double value, bool is_defined = true) override { set(column_idx, std::to_string(value), is_defined); }
-  void set(int column_idx, const void * data, size_t len, bool is_defined = true) { set(column_idx, std::string(reinterpret_cast<const char *>(data), len), is_defined); }
+  void set(int column_idx, const void * data, size_t len, bool is_defined = true) override { set(column_idx, std::string(reinterpret_cast<const char *>(data), len), is_defined); }
 
   bool next() override {
     std::lock_guard<std::mutex> guard(storage_->mutex_);
@@ -152,12 +152,12 @@ public:
     }
   }
 
-  std::string getRowKey() const override {
+  Key getRowKey() const override {
     std::lock_guard<std::mutex> guard(storage_->mutex_);
-
+    
     auto & data = storage_->data_;
-    if (it_ != data.end()) return it_->first;
-    else return "";
+    if (it_ != data.end()) return Key(it_->first);
+    else return Key();
   }
 
   std::string getText(int column_index, std::string default_value) override {
@@ -224,16 +224,16 @@ public:
 private:
   MemoryStorage* storage_;
   std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
-  std::map<std::string, std::vector<std::string> >::iterator it_;
-  std::string pending_key_;
+  std::map<Key, std::vector<std::string> >::iterator it_;
+  Key pending_key_;
   std::unordered_map<int, std::string> pending_row_;
   bool is_increment_op_;
 };
 
 std::unique_ptr<Cursor>
-MemoryStorage::seek(std::string_view key) {
+MemoryStorage::seek(const Key & key) {
   std::lock_guard<std::mutex> guard(mutex_);
-  auto it = data_.find(std::string(key));
+  auto it = data_.find(key);
   if (it != data_.end()) {
     return std::make_unique<MemoryTableCursor>(this, move(it));
   } else {
@@ -253,15 +253,15 @@ MemoryStorage::seekBegin() {
 }
 
 std::unique_ptr<Cursor>
-MemoryStorage::insertOrUpdate(std::string_view key) {
+MemoryStorage::insertOrUpdate(const Key & key) {
   assert(!key.empty());
-  return std::make_unique<MemoryTableCursor>(this, string(key));
+  return std::make_unique<MemoryTableCursor>(this, key);
 }
   
 std::unique_ptr<Cursor>
-MemoryStorage::increment(std::string_view key) {
+MemoryStorage::increment(const Key & key) {
   assert(!key.empty());
-  return std::make_unique<MemoryTableCursor>(this, string(key), true);
+  return std::make_unique<MemoryTableCursor>(this, key, true);
 }
 
 MemoryTable::MemoryTable(bool numeric_key)
@@ -273,8 +273,8 @@ MemoryTable::addColumn(std::string_view name, sqldb::ColumnType type, bool uniqu
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::insert(std::string_view key) {
-  return storage_->insertOrUpdate(std::move(key));
+MemoryTable::insert(const Key & key) {
+  return storage_->insertOrUpdate(key);
 }
 
 std::unique_ptr<Cursor>
@@ -283,18 +283,18 @@ MemoryTable::insert() {
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::increment(std::string_view key) {
-  return storage_->increment(std::move(key));
+MemoryTable::increment(const Key & key) {
+  return storage_->increment(key);
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::update(std::string_view key) {
-  return storage_->insertOrUpdate(std::move(key));
+MemoryTable::update(const Key & key) {
+  return storage_->insertOrUpdate(key);
 }
 
 void
-MemoryTable::remove(std::string_view key) {
-  return storage_->remove(std::move(key));
+MemoryTable::remove(const Key & key) {
+  return storage_->remove(key);
 }
 
 std::unique_ptr<Cursor>
@@ -303,8 +303,8 @@ MemoryTable::seekBegin() {
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::seek(std::string_view key) {
-  return storage_->seek(std::move(key));
+MemoryTable::seek(const Key & key) {
+  return storage_->seek(key);
 }
 
 int
@@ -342,7 +342,7 @@ MemoryTable::append(Table & other) {
   
   if (auto cursor = other.seekBegin()) {
     do {
-      auto my_cursor = insert(cursor->getRowKey());	  
+      auto my_cursor = insert(cursor->getRowKey());
       for (int i = 0; i < cursor->getNumFields(); i++) {
 	my_cursor->set(i, cursor->getText(i));
       }

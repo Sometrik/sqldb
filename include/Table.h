@@ -20,14 +20,20 @@ namespace sqldb {
     
     virtual bool hasNumericKey() const { return false; }
     virtual std::unique_ptr<Cursor> seekBegin() = 0;
-    virtual std::unique_ptr<Cursor> seek(std::string_view key) = 0;
+    virtual std::unique_ptr<Cursor> seek(const Key & key) = 0;
 
-    virtual std::unique_ptr<Cursor> insert(std::string_view key) = 0;
+    virtual std::unique_ptr<Cursor> insert(const Key & key) = 0;
     virtual std::unique_ptr<Cursor> insert() = 0;
-    virtual std::unique_ptr<Cursor> increment(std::string_view key) = 0;
-    virtual std::unique_ptr<Cursor> update(std::string_view key) = 0;
-    virtual void remove(std::string_view key) = 0;
+    virtual std::unique_ptr<Cursor> increment(const Key & key) = 0;
+    virtual std::unique_ptr<Cursor> update(const Key & key) = 0;
+    virtual void remove(const Key & key) = 0;
 
+    std::unique_ptr<Cursor> seek(std::string key) { return seek(Key(std::move(key))); }
+    std::unique_ptr<Cursor> insert(std::string key) { return insert(Key(std::move(key))); }
+    std::unique_ptr<Cursor> increment(std::string key) { return increment(Key(std::move(key))); }
+    std::unique_ptr<Cursor> update(std::string key) { return update(Key(std::move(key))); }
+    void remove(std::string key) { remove(Key(std::move(key))); }
+    
     virtual std::unique_ptr<Table> copy() const = 0;
     virtual void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) = 0;
     virtual void append(Table & other) = 0;
@@ -92,7 +98,7 @@ namespace sqldb {
     void addEnumColumn(std::string_view name) { addColumn(std::move(name), ColumnType::ENUM); }
     void addBoolColumn(std::string_view name) { addColumn(std::move(name), ColumnType::BOOL); }
     
-    std::string dumpRow(std::string_view key) {
+    std::string dumpRow(const Key & key) {
       std::string r;
       if (auto cursor = seek(key)) {
 	for (int i = 0; i < getNumFields(); i++) {
