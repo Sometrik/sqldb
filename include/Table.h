@@ -43,15 +43,19 @@ namespace sqldb {
     virtual void rollback() { }
     
     int getColumnByNames(std::unordered_set<std::string> names) const {
-      for (int i = getNumFields() - 1; i >= 0; i--) {
-	if (names.count(getColumnName(i))) return i;
+      if (getNumFields()) {
+	for (int i = getNumFields() - 1; i >= 0; i--) {
+	  if (names.count(getColumnName(i))) return i;
+	}
       }
       return -1;
     }
 
     int getColumnByName(std::string_view name) const {
-      for (int i = getNumFields() - 1; i >= 0; i--) {
-	if (getColumnName(i) == name) return i;
+      if (getNumFields()) {
+	for (int i = getNumFields() - 1; i >= 0; i--) {
+	  if (getColumnName(i) == name) return i;
+	}
       }
       return -1;
     }
@@ -65,9 +69,11 @@ namespace sqldb {
 
     std::vector<int> getColumnsByNames(std::unordered_set<std::string> names) const {
       std::vector<int> r;
-      for (int i = getNumFields() - 1; i >= 0; i--) {
-	if (names.count(getColumnName(i))) {
-	  r.push_back(i);
+      if (getNumFields()) {
+	for (int i = getNumFields() - 1; i >= 0; i--) {
+	  if (names.count(getColumnName(i))) {
+	    r.push_back(i);
+	  }
 	}
       }
       return r;
@@ -98,6 +104,20 @@ namespace sqldb {
       }
       return r;
     }
+
+    void setSortCol(int sort_col, int sort_subcol, bool desc = false) {
+      sort_col_ = sort_col;
+      sort_subcol_ = sort_subcol;
+      desc_sort_ = desc;
+    }
+    bool hasSorting() const { return sort_col_ >= 0; }
+    int getSortCol() const { return sort_col_; }
+    int getSortSubcol() const { return sort_subcol_; }
+    bool isDescSort() const { return desc_sort_; }
+    
+  private:
+    int sort_col_ = -1, sort_subcol_ = -1;
+    bool desc_sort_ = false;
   };
 };
 
