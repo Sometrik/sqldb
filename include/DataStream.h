@@ -79,6 +79,34 @@ namespace sqldb {
     }
 
     virtual long long getLastInsertId() const = 0;
+
+    void bind(int value, bool is_defined = true) {
+      set(getNextBindIndex(), value, is_defined);
+    }
+    void bind(long long value, bool is_defined = true) {
+      set(getNextBindIndex(), value, is_defined);
+    }  
+    void bind(double value, bool is_defined = true) {
+      set(getNextBindIndex(), value, is_defined);
+    }
+    void bind(std::string_view value, bool is_defined = true) {
+      set(getNextBindIndex(), std::move(value), is_defined);
+    }
+    void bind(const void * data, size_t len, bool is_defined) {
+      set(getNextBindIndex(), data, len, is_defined);
+    }
+    void bind(bool value, bool is_defined = true) {
+      bind(value ? 1 : 0, is_defined);
+    }
+
+    virtual void reset() {
+      next_bind_index_ = 0;
+    }
+
+  private:
+    int getNextBindIndex() { return next_bind_index_++; }
+
+    int next_bind_index_ = 0;
   };
 };
 
