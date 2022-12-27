@@ -17,7 +17,6 @@ namespace sqldb {
       DATABASE_ERROR,
       DATABASE_MISUSE,
       SCHEMA_CHANGED,
-      BAD_BIND_INDEX,
       BAD_COLUMN_INDEX,
       GET_FAILED,
       COMMIT_FAILED,
@@ -47,7 +46,6 @@ namespace sqldb {
       case DATABASE_ERROR: return "Database error";
       case DATABASE_MISUSE: return "Database misuse";
       case SCHEMA_CHANGED: return "Schema changed";
-      case BAD_BIND_INDEX: return "Bad bind index";
       case BAD_COLUMN_INDEX: return "Bad column index";
       case GET_FAILED: return "Get failed";
       case COMMIT_FAILED: return "Commit failed";
