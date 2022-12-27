@@ -47,7 +47,7 @@ namespace sqldb {
       throw std::runtime_error("dBase4 is read-only");
     }
 
-    std::unique_ptr<Cursor> update(const Key & key) override {
+    std::unique_ptr<Cursor> assign(std::vector<int> columns) override {
       throw std::runtime_error("dBase4 is read-only");
     }
 

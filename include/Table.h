@@ -9,6 +9,7 @@
 #include <vector>
 #include <string_view>
 #include <string>
+#include <numeric>
 
 namespace sqldb {
   class Cursor;
@@ -25,13 +26,19 @@ namespace sqldb {
     virtual std::unique_ptr<Cursor> insert(const Key & key) = 0;
     virtual std::unique_ptr<Cursor> insert() = 0;
     virtual std::unique_ptr<Cursor> increment(const Key & key) = 0;
-    virtual std::unique_ptr<Cursor> update(const Key & key) = 0;
+    virtual std::unique_ptr<Cursor> assign(std::vector<int> columns) = 0;
     virtual void remove(const Key & key) = 0;
 
     std::unique_ptr<Cursor> seek(std::string key) { return seek(Key(std::move(key))); }
     std::unique_ptr<Cursor> insert(std::string key) { return insert(Key(std::move(key))); }
-    std::unique_ptr<Cursor> increment(std::string key) { return increment(Key(std::move(key))); }
-    std::unique_ptr<Cursor> update(std::string key) { return update(Key(std::move(key))); }
+
+    std::unique_ptr<Cursor> assign() {
+      // Select all columns
+      std::vector<int> cols(getNumFields());
+      std::iota(cols.begin(), cols.end(), 0);
+      return assign(std::move(cols));
+    }
+
     void remove(std::string key) { remove(Key(std::move(key))); }
     
     virtual std::unique_ptr<Table> copy() const = 0;

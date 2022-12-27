@@ -250,9 +250,9 @@ public:
     return csv_->getColumnName(column_index);
   }
   
-  Key getRowKey() const {
+  Key getRowKey() const override {
     Key key;
-    if (csv_->getNextRowIdx() >= 1) key.formatHex(csv_->getNextRowIdx() - 1);
+    if (csv_->getNextRowIdx() >= 1) key.addHexComponent(csv_->getNextRowIdx() - 1);
     return key;
   }
 
@@ -272,6 +272,9 @@ public:
     throw std::runtime_error("CSV is read-only");
   }
   size_t execute() override {
+    throw std::runtime_error("CSV is read-only");
+  }
+  size_t update(const Key & key) override {
     throw std::runtime_error("CSV is read-only");
   }
 
@@ -298,8 +301,8 @@ CSV::getColumnName(int column_index) const {
 unique_ptr<Cursor>
 CSV::seek(const Key & key0) {
   assert(key0.size() == 1);
-  auto key = key0.getValue();
-  int row;
+  auto & key = key0.front();
+  int row = 0;
   auto result = std::from_chars(key.data(), key.data() + key.size(), row, 16);
   if (result.ec == std::errc::invalid_argument) {
     return unique_ptr<CSVCursor>(nullptr);
