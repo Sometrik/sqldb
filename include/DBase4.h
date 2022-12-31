@@ -57,7 +57,7 @@ namespace sqldb {
 
     std::unique_ptr<Cursor> seekBegin() override { return seek(0); }
     std::unique_ptr<Cursor> seek(const Key & key) override;
-    std::unique_ptr<Cursor> seek(int row);
+    std::unique_ptr<Cursor> seek(int row) override;
 
     void setPrimaryKeyMapping(std::unordered_map<std::string, int> m) { primary_key_mapping_ = std::move(m); }
 

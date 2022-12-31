@@ -58,7 +58,7 @@ namespace sqldb {
 
     std::unique_ptr<Cursor> seekBegin() override { return seek(0); }
     std::unique_ptr<Cursor> seek(const Key & key) override;
-    std::unique_ptr<Cursor> seek(int row);
+    std::unique_ptr<Cursor> seek(int row) override;
     
   private:
     std::shared_ptr<CSVFile> csv_;    

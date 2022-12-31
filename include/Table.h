@@ -22,6 +22,7 @@ namespace sqldb {
     virtual bool hasNumericKey() const { return false; }
     virtual std::unique_ptr<Cursor> seekBegin() = 0;
     virtual std::unique_ptr<Cursor> seek(const Key & key) = 0;
+    virtual std::unique_ptr<Cursor> seek(int row) { return std::unique_ptr<Cursor>(nullptr); }
 
     virtual std::unique_ptr<Cursor> insert(const Key & key) = 0;
     virtual std::unique_ptr<Cursor> insert() = 0;
