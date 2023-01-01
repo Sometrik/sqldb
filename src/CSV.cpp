@@ -96,7 +96,7 @@ public:
     input_buffer_(other.input_buffer_),
     row_offsets_(other.row_offsets_)
   {
-    in_ = fopen(csv_file_.c_str(), "r");
+    in_ = fopen(csv_file_.c_str(), "rb");
     if (in_) fseek(in_, ftell(other.in_), SEEK_SET);
   }
   
@@ -177,7 +177,9 @@ private:
 	} else if (quoted && input_buffer_[i] == '"') {
 	  quoted = false;
 	} else if (!quoted && input_buffer_[i] == '\n') {
-	  auto r = normalize_nfc(string_view(input_buffer_).substr(0, i));
+	  auto record0 = string_view(input_buffer_).substr(0, i);
+	  if (record0.back() == '\r') record0.remove_suffix(1);
+	  auto r = normalize_nfc(record0);
 	  // std::cerr << "found record: " << rec << "\n";
 	  input_buffer_ = input_buffer_.substr(i + 1);
 	  return r;
