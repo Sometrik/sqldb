@@ -96,8 +96,8 @@ public:
   Key getRowKey(int row) {
     Key key;
     if (row >= 0) {
-      if (primary_key_ == -1) key.addHexComponent(row);
-      else key.addComponent(getText(row, primary_key_, ""));
+      if (primary_key_ == -1) key.addIntComponent(row);
+      else key.addTextComponent(getText(row, primary_key_, ""));
     }
     return key;
   }
@@ -239,9 +239,18 @@ private:
   int current_row_;
 };
 
-DBase4::DBase4(std::string filename, int primary_key) : dbf_(make_shared<DBase4File>(move(filename), primary_key)) { }
-DBase4::DBase4(const DBase4 & other) : dbf_(make_shared<DBase4File>(*other.dbf_)) { }
-DBase4::DBase4(DBase4 && other) : dbf_(move(other.dbf_)) { }
+DBase4::DBase4(std::string filename, int primary_key)
+  : dbf_(make_shared<DBase4File>(move(filename), primary_key)) { }
+
+DBase4::DBase4(const DBase4 & other)
+  : Table(other),
+    dbf_(make_shared<DBase4File>(*other.dbf_)),
+    primary_key_mapping_(other.primary_key_mapping_) { }
+
+DBase4::DBase4(DBase4 && other)
+  : Table(other),
+    dbf_(move(other.dbf_)),
+    primary_key_mapping_(move(other.primary_key_mapping_)) { }
 
 int
 DBase4::getNumFields() const {
@@ -259,20 +268,18 @@ DBase4::getColumnType(int column_index) const {
 }
 
 unique_ptr<Cursor>
-DBase4::seek(const Key & key0) {
-  assert(key0.size() == 1);
-  auto & key = key0.front();
+DBase4::seek(const Key & key) {
+  assert(key.size() == 1);
   if (!primary_key_mapping_.empty()) {
-    auto it = primary_key_mapping_.find(key);
-    if (it != primary_key_mapping_.end()) return seek(it->second);
-  } else {
-    int row = 0;
-    auto result = std::from_chars(key.data(), key.data() + key.size(), row, 16);
-    if (result.ec != std::errc::invalid_argument && row >= 0 && row < dbf_->getRecordCount()) {
-      return seek(row);
+    auto it = primary_key_mapping_.find(key.getText(0));
+    if (it != primary_key_mapping_.end()) {
+      return seek(it->second);
+    } else {
+      return unique_ptr<DBase4Cursor>(nullptr);
     }
+  } else {
+    return seek(key.getInt(0));
   }
-  return unique_ptr<DBase4Cursor>(nullptr);
 }
 
 unique_ptr<Cursor>
