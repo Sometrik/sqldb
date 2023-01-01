@@ -3,11 +3,9 @@
 #include <Cursor.h>
 
 #include <utf8proc.h>
-
 #include <fstream>
 #include <vector>
 #include <cstdio>
-#include <charconv>
 #include <cassert>
 
 static inline std::string normalize_nfc(const std::string & input) {
@@ -252,7 +250,7 @@ public:
   
   Key getRowKey() const override {
     Key key;
-    if (csv_->getNextRowIdx() >= 1) key.addHexComponent(csv_->getNextRowIdx() - 1);
+    if (csv_->getNextRowIdx() >= 1) key.addIntComponent(csv_->getNextRowIdx() - 1);
     return key;
   }
 
@@ -284,9 +282,15 @@ private:
   std::shared_ptr<CSVFile> csv_;
 };
 
-CSV::CSV(std::string csv_file, bool has_records) : csv_(make_shared<CSVFile>(move(csv_file), has_records)) { }
-CSV::CSV(const CSV & other) : csv_(make_shared<CSVFile>(*other.csv_)) { }
-CSV::CSV(CSV && other) : csv_(move(other.csv_)) { }
+CSV::CSV(std::string csv_file, bool has_records)
+  : csv_(make_shared<CSVFile>(move(csv_file), has_records)) { }
+
+CSV::CSV(const CSV & other)
+  : Table(other),
+    csv_(make_shared<CSVFile>(*other.csv_)) { }
+CSV::CSV(CSV && other)
+  : Table(other),
+    csv_(move(other.csv_)) { }
 
 int
 CSV::getNumFields() const {
@@ -299,16 +303,9 @@ CSV::getColumnName(int column_index) const {
 }
 
 unique_ptr<Cursor>
-CSV::seek(const Key & key0) {
-  assert(key0.size() == 1);
-  auto & key = key0.front();
-  int row = 0;
-  auto result = std::from_chars(key.data(), key.data() + key.size(), row, 16);
-  if (result.ec == std::errc::invalid_argument) {
-    return unique_ptr<CSVCursor>(nullptr);
-  } else {
-    return seek(row);
-  }
+CSV::seek(const Key & key) {
+  assert(key.size() == 1);
+  return seek(key.getInt(0));
 }
 
 unique_ptr<Cursor>
