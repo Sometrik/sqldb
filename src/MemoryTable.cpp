@@ -27,12 +27,13 @@ public:
     Key key;
     {
       std::lock_guard<std::mutex> guard(mutex_);
-      key.formatDec(++auto_increment_);
+      key.addIntComponent(++auto_increment_);
     }
     return insertOrUpdate(key);
   }
 
   std::unique_ptr<Cursor> increment(const Key & key);
+  std::unique_ptr<Cursor> assign(std::vector<int> columns);
 
   void remove(const Key & key) {
     std::lock_guard<std::mutex> guard(mutex_);
@@ -94,6 +95,10 @@ public:
 		    Key pending_key,
 		    bool is_increment_op = false)
     : storage_(storage), header_row_(storage->header_row_), pending_key_(std::move(pending_key)), is_increment_op_(is_increment_op) { }
+  MemoryTableCursor(MemoryStorage * storage,
+		    std::vector<int> selected_columns
+		    )
+    : storage_(storage), header_row_(storage->header_row_), selected_columns_(std::move(selected_columns)), is_increment_op_(false) { }
 
   size_t execute() override {
     std::lock_guard<std::mutex> guard(storage_->mutex_);
@@ -119,6 +124,30 @@ public:
 	for (auto [ key, value ] : pending_row_) {
 	  if (v.size() <= static_cast<size_t>(key)) v.resize(static_cast<size_t>(key) + 1);
 	  v[key] = value;
+	}
+      }
+      pending_row_.clear();
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+
+  size_t update(const Key & key) override {
+    std::lock_guard<std::mutex> guard(storage_->mutex_);
+    auto & data = storage_->data_;
+    auto it = data.find(key);
+    if (it != data.end()) {
+      auto & v = it->second;
+
+      for (size_t i = 0; i < selected_columns_.size(); i++) {
+	auto col = selected_columns_[i];
+	auto it = pending_row_.find(static_cast<int>(i));
+	if (it != pending_row_.end()) {
+	  if (v.size() <= static_cast<size_t>(col)) v.resize(static_cast<size_t>(col) + 1);
+	  v[col] = it->second;
+	} else if (static_cast<int>(col) < v.size()) {
+	  v[col].clear();
 	}
       }
       pending_row_.clear();
@@ -227,6 +256,7 @@ private:
   std::map<Key, std::vector<std::string> >::iterator it_;
   Key pending_key_;
   std::unordered_map<int, std::string> pending_row_;
+  std::vector<int> selected_columns_;
   bool is_increment_op_;
 };
 
@@ -264,6 +294,11 @@ MemoryStorage::increment(const Key & key) {
   return std::make_unique<MemoryTableCursor>(this, key, true);
 }
 
+std::unique_ptr<Cursor>
+MemoryStorage::assign(std::vector<int> columns) {
+  return std::make_unique<MemoryTableCursor>(this, columns);
+}
+ 
 MemoryTable::MemoryTable(bool numeric_key)
   : numeric_key_(numeric_key), storage_(make_shared<MemoryStorage>()) { }
 
@@ -288,8 +323,8 @@ MemoryTable::increment(const Key & key) {
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::update(const Key & key) {
-  return storage_->insertOrUpdate(key);
+MemoryTable::assign(std::vector<int> columns) {
+  return storage_->assign(columns);
 }
 
 void
