@@ -1,6 +1,5 @@
 #include "SQLite.h"
 
-#include <cstring>
 #include <cassert>
 #include <vector>
 
@@ -14,9 +13,7 @@ public:
     assert(db_);
     assert(stmt_);
 
-    for (int i = 0, n = sqlite3_column_count(stmt_); i < n; i++) {
-      column_names_.push_back(sqlite3_column_name(stmt_, i));
-    }
+    num_columns_ = sqlite3_column_count(stmt_);
   }
   ~SQLiteStatement() {
     if (stmt_) sqlite3_finalize(stmt_);
@@ -118,14 +115,15 @@ public:
     }
     return default_value;
   }
-  std::string getText(int column_index, std::string default_value) override {
+  std::string_view getText(int column_index) override {
     if (!isNull(column_index)) {
       auto s = (const char *)sqlite3_column_text(stmt_, column_index);
       if (s) {
-	return std::string(s);
+	auto len = (size_t)sqlite3_column_bytes(stmt_, column_index);
+	return std::string_view(s, len);
       }
     }
-    return std::move(default_value);
+    return null_string;
   }
   std::vector<uint8_t> getBlob(int column_index) override {
     std::vector<uint8_t> r;
@@ -147,7 +145,7 @@ public:
   }
 
   int getNumFields() const override {
-    return static_cast<int>(column_names_.size());    
+    return num_columns_;
   }
 
   long long getLastInsertId() const override {
@@ -157,9 +155,14 @@ public:
     return sqlite3_changes(db_);
   }
 
-  std::string getColumnName(int column_index) const override {
+  const std::string & getColumnName(int column_index) override {
+    if (column_names_.empty()) {
+      for (int i = 0; i < num_columns_; i++) {
+	column_names_.push_back(sqlite3_column_name(stmt_, i));
+      }
+    }
     auto idx = static_cast<size_t>(column_index);
-    return idx < column_names_.size() ? column_names_[idx] : "";
+    return idx < column_names_.size() ? column_names_[idx] : null_string;
   }
 
 protected:
@@ -168,7 +171,10 @@ protected:
 private:
   sqlite3 * db_;
   sqlite3_stmt * stmt_;
-  std::vector<const char *> column_names_;
+  int num_columns_;
+  std::vector<std::string> column_names_;
+  
+  static inline std::string null_string;
 };
 
 SQLite::SQLite(const std::string & db_file, bool read_only) : db_file_(db_file), read_only_(read_only)

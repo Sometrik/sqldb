@@ -3,6 +3,7 @@
 
 #include "ColumnType.h"
 
+#include <string>
 #include <vector>
 
 namespace sqldb {
@@ -89,6 +90,11 @@ namespace sqldb {
     void addTextComponent(std::string value) noexcept {
       types_.push_back(ColumnType::VARCHAR);
       components_.push_back(std::move(value));
+    }
+
+    void addTextComponent(std::string_view value) noexcept {
+      types_.push_back(ColumnType::VARCHAR);
+      components_.push_back(std::string(value));
     }
 
     ColumnType getType(size_t idx) const {

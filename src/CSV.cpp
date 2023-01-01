@@ -3,20 +3,10 @@
 #include <Cursor.h>
 
 #include <utf8proc.h>
-#include <fstream>
 #include <vector>
-#include <cstdio>
 #include <cassert>
 
-static inline std::string normalize_nfc(const std::string & input) {
-  auto r0 = utf8proc_NFC(reinterpret_cast<const unsigned char *>(input.c_str()));
-  std::string r;
-  if (r0) {
-    r = (const char *)r0;
-    free(r0);
-  }
-  return r;
-}
+#include "utils.h"
 
 using namespace sqldb;
 using namespace std;
@@ -110,17 +100,24 @@ public:
     if (in_) fseek(in_, ftell(other.in_), SEEK_SET);
   }
   
-  std::string getText(int column_index, std::string default_value) const {
+  std::string_view getText(int column_index) const {
     if (column_index >= 0 && column_index < current_row_.size()) {
       return current_row_[column_index];
     }
-    return move(default_value);
+    return null_string;
   }
-  
+
+  bool isNull(int column_index) const {
+    if (column_index >= 0 && column_index < current_row_.size()) {
+      return current_row_[column_index].empty();
+    }
+    return true;
+  }
+
   int getNumFields() const { return static_cast<int>(header_row_.size()); }
-  std::string getColumnName(int column_index) const {
+  const std::string & getColumnName(int column_index) const {
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row_.size() ? header_row_[idx] : "";
+    return idx < header_row_.size() ? header_row_[idx] : null_string;
   }
 
   size_t getNextRowIdx() const { return next_row_idx_; }
@@ -180,10 +177,10 @@ private:
 	} else if (quoted && input_buffer_[i] == '"') {
 	  quoted = false;
 	} else if (!quoted && input_buffer_[i] == '\n') {
-	  auto rec = input_buffer_.substr(0, i);
+	  auto r = normalize_nfc(string_view(input_buffer_).substr(0, i));
 	  // std::cerr << "found record: " << rec << "\n";
 	  input_buffer_ = input_buffer_.substr(i + 1);
-	  return normalize_nfc(rec);
+	  return r;
 	}
       }
       
@@ -200,9 +197,9 @@ private:
 
       // If the last row is not \n terminated, return it anyway
       if (!input_buffer_.empty()) {
-	auto rec = input_buffer_;
+	auto r = normalize_nfc(input_buffer_);
 	input_buffer_.clear();
-	return normalize_nfc(rec);
+	return r;
       } else {
 	return "";
       }
@@ -217,6 +214,8 @@ private:
   std::vector<std::string> current_row_;
   std::string input_buffer_;
   std::vector<size_t> row_offsets_;
+  
+  static inline std::string null_string;
 };
 
 class CSVCursor : public Cursor {
@@ -227,24 +226,24 @@ public:
   
   bool next() override { return csv_->next(); }
   
-  std::string getText(int column_index, const std::string default_value = "") override {
-    return csv_->getText(column_index, default_value);    
+  std::string_view getText(int column_index) override {
+    return csv_->getText(column_index);
   }
 
   int getNumFields() const override { return csv_->getNumFields(); }
 
   vector<uint8_t> getBlob(int column_index) override {
-    auto v = csv_->getText(column_index, "");
+    auto v = csv_->getText(column_index);
     std::vector<uint8_t> r;
     for (size_t i = 0; i < v.size(); i++) r.push_back(static_cast<uint8_t>(v[i]));
     return r;
   }
   
   bool isNull(int column_index) const override {
-    return csv_->getText(column_index, "").empty();    
+    return csv_->isNull(column_index);
   }
 
-  std::string getColumnName(int column_index) const override {
+  const std::string & getColumnName(int column_index) override {
     return csv_->getColumnName(column_index);
   }
   
@@ -297,7 +296,7 @@ CSV::getNumFields() const {
   return csv_->getNumFields();
 }
 
-std::string
+const std::string &
 CSV::getColumnName(int column_index) const {
   return csv_->getColumnName(column_index);
 }

@@ -47,7 +47,7 @@ namespace sqldb {
     virtual int getNumFields() const = 0;
     virtual ColumnType getColumnType(int column_index) const = 0;
     virtual bool isColumnUnique(int column_index) const { return false; }
-    virtual std::string getColumnName(int column_index) const = 0;
+    virtual const std::string & getColumnName(int column_index) const = 0;
     
     virtual void begin() { }
     virtual void commit() { }

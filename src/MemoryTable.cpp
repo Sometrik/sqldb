@@ -60,10 +60,10 @@ public:
     return idx < header_row_.size() ? std::get<0>(header_row_[idx]) : ColumnType::UNDEF;
   }
 
-  std::string getColumnName(int column_index) const {
+  const std::string & getColumnName(int column_index) const {
     std::lock_guard<std::mutex> guard(mutex_);
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row_.size() ? std::get<1>(header_row_[idx]) : "";
+    return idx < header_row_.size() ? std::get<1>(header_row_[idx]) : null_string;
   }
 
   bool isColumnUnique(int column_index) const {
@@ -83,6 +83,8 @@ private:
   std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
   long long auto_increment_ = 0;
   mutable std::mutex mutex_;
+
+  static inline std::string null_string;
 };
 
 class sqldb::MemoryTableCursor : public Cursor {
@@ -189,7 +191,7 @@ public:
     else return Key();
   }
 
-  std::string getText(int column_index, std::string default_value) override {
+  std::string_view getText(int column_index) override {
     std::lock_guard<std::mutex> guard(storage_->mutex_);
 
     auto & data = storage_->data_;
@@ -198,7 +200,7 @@ public:
       auto & row = it_->second;
       if (idx < row.size()) return row[idx];
     }
-    return std::move(default_value);    
+    return null_string;    
   }
     
   std::vector<uint8_t> getBlob(int column_index) override {
@@ -227,9 +229,9 @@ public:
     return idx < header_row_.size() ? std::get<0>(header_row_[idx]) : ColumnType::UNDEF;
   }
     
-  std::string getColumnName(int column_index) const override {
+  const std::string & getColumnName(int column_index) override {
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row_.size() ? std::get<1>(header_row_[idx]) : "";
+    return idx < header_row_.size() ? std::get<1>(header_row_[idx]) : null_string;
   }
     
   bool isNull(int column_index) const override {
@@ -258,6 +260,8 @@ private:
   std::unordered_map<int, std::string> pending_row_;
   std::vector<int> selected_columns_;
   bool is_increment_op_;
+
+  static inline std::string null_string;
 };
 
 std::unique_ptr<Cursor>
@@ -357,7 +361,7 @@ MemoryTable::getColumnType(int column_index) const {
   return storage_->getColumnType(column_index);
 }
 
-std::string
+const std::string &
 MemoryTable::getColumnName(int column_index) const {
   return storage_->getColumnName(column_index);
 }

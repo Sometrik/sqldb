@@ -4,23 +4,11 @@
 
 #include <utf8proc.h>
 
-#include <fstream>
 #include <vector>
-#include <cstdio>
-#include <charconv>
-#include <cstring>
 #include <cassert>
 #include <shapefil.h>
 
-static inline std::string normalize_nfc(const std::string & input) {
-  auto r0 = utf8proc_NFC(reinterpret_cast<const unsigned char *>(input.c_str()));
-  std::string r;
-  if (r0) {
-    r = (const char *)r0;
-    free(r0);
-  }
-  return r;
-}
+#include "utils.h"
 
 using namespace std;
 using namespace sqldb;
@@ -51,18 +39,12 @@ public:
     }
   }
 
-  std::string getText(int row_index, int column_index, std::string default_value) const {
+  std::string getText(int row_index, int column_index) const {
     if (!isNull(row_index, column_index)) {
-      auto tmp = DBFReadStringAttribute(h_, row_index, column_index);
-      if (tmp) {
-	string output;
-	while (*tmp) {
-	  output += *tmp++;
-	}
-	return normalize_nfc(output);
-      }
+      auto r = DBFReadStringAttribute(h_, row_index, column_index);
+      if (r) return normalize_nfc(r);
     }
-    return std::move(default_value);
+    return "";
   }
 
   bool getBool(int row_index, int column_index, bool default_value) const {
@@ -97,7 +79,7 @@ public:
     Key key;
     if (row >= 0) {
       if (primary_key_ == -1) key.addIntComponent(row);
-      else key.addTextComponent(getText(row, primary_key_, ""));
+      else key.addTextComponent(getText(row, primary_key_));
     }
     return key;
   }
@@ -105,9 +87,9 @@ public:
   int getRecordCount() { return record_count_; }
   int getNumFields() const { return static_cast<int>(column_types_.size()); }
   
-  std::string getColumnName(int column_index) const {
+  const std::string & getColumnName(int column_index) const {
     auto idx = static_cast<size_t>(column_index);
-    return idx < column_names_.size() ? column_names_[idx] : "";
+    return idx < column_names_.size() ? column_names_[idx] : null_string;
   }
 
   ColumnType getColumnType(int column_index) const {
@@ -153,6 +135,8 @@ private:
   std::vector<std::string> column_names_;
   std::vector<ColumnType> column_types_;
   int record_count_;
+
+  static inline std::string null_string;
 };
 
 class DBase4Cursor : public Cursor {
@@ -163,14 +147,17 @@ public:
   bool next() override {
     if (current_row_ + 1 < dbf_->getRecordCount()) {
       current_row_++;
+      text_cache_.clear();
       return true;
     } else {
       return false;
     }
   }
   
-  std::string getText(int column_index, const std::string default_value = "") override {
-    return dbf_->getText(current_row_, column_index, default_value);    
+  std::string_view getText(int column_index) override {
+    auto [ it, is_new ] = text_cache_.emplace(column_index, std::string());
+    if (is_new) it->second = dbf_->getText(current_row_, column_index);
+    return it->second;
   }
 
   bool getBool(int column_index, bool default_value = false) override {
@@ -192,7 +179,7 @@ public:
   int getNumFields() const override { return dbf_->getNumFields(); }
 
   vector<uint8_t> getBlob(int column_index) override {
-    auto v = dbf_->getText(current_row_, column_index, "");
+    auto v = dbf_->getText(current_row_, column_index);
     std::vector<uint8_t> r;
     for (size_t i = 0; i < v.size(); i++) r.push_back(static_cast<uint8_t>(v[i]));
     return r;
@@ -202,7 +189,7 @@ public:
     return dbf_->isNull(current_row_, column_index);
   }
 
-  std::string getColumnName(int column_index) const override {
+  const std::string & getColumnName(int column_index) override {
     return dbf_->getColumnName(column_index);
   }
 
@@ -237,6 +224,7 @@ public:
 private:
   std::shared_ptr<DBase4File> dbf_;
   int current_row_;
+  std::unordered_map<int, std::string> text_cache_;
 };
 
 DBase4::DBase4(std::string filename, int primary_key)
@@ -257,7 +245,7 @@ DBase4::getNumFields() const {
   return dbf_->getNumFields();
 }
 
-std::string
+const std::string &
 DBase4::getColumnName(int column_index) const {
   return dbf_->getColumnName(column_index);
 }

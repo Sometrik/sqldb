@@ -3,8 +3,9 @@
 
 #include "ColumnType.h"
 
-#include <string>
+#include <string_view>
 #include <vector>
+#include <charconv>
 
 namespace sqldb {  
   class DataStream {
@@ -21,11 +22,11 @@ namespace sqldb {
     virtual size_t execute() = 0;
 
     virtual std::vector<uint8_t> getBlob(int column_index) = 0;
-    virtual std::string getText(int column_index, std::string default_value) = 0;
+    virtual std::string_view getText(int column_index) = 0;
     virtual bool isNull(int column_index) const = 0;
     virtual int getNumFields() const = 0;
     virtual bool next() = 0;
-    virtual std::string getColumnName(int column_index) const = 0;
+    virtual const std::string & getColumnName(int column_index) = 0;
 
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
@@ -38,14 +39,18 @@ namespace sqldb {
     virtual double getDouble(int column_index, double default_value = 0.0) {
       auto s = getText(column_index);
       if (!s.empty()) {
-	try { return stof(s); } catch (...) { }
+	double d;
+	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), d);
+	if (ec == std::errc()) return d;
       }
       return default_value;
     }
     virtual float getFloat(int column_index, float default_value = 0.0f) {
       auto s = getText(column_index);
       if (!s.empty()) {
-       try { return static_cast<float>(stof(s)); } catch (...) { }
+	float f;
+	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), f);
+	if (ec == std::errc()) return f;	
       }
       return default_value;
     }
@@ -53,7 +58,9 @@ namespace sqldb {
     virtual int getInt(int column_index, int default_value = 0) {
       auto s = getText(column_index);
       if (!s.empty()) {
-	try { return stoi(s); } catch (...) { }
+	int i;
+	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), i);
+	if (ec == std::errc()) return i;	
       }
       return default_value;
     }
@@ -61,12 +68,12 @@ namespace sqldb {
     virtual long long getLongLong(int column_index, long long default_value = 0) {
       auto s = getText(column_index);
       if (!s.empty()) {
-	try { return stoll(s); } catch (...) { }
+	long long ll;
+	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), ll);
+	if (ec == std::errc()) return ll;	
       }
       return default_value;  
     }
-			
-    std::string getText(int column_index) { return getText(column_index, ""); }
 
     virtual void set(int column_idx, std::string_view value, bool is_defined = true) = 0;
     virtual void set(int column_idx, int value, bool is_defined = true) = 0;

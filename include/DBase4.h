@@ -20,7 +20,7 @@ namespace sqldb {
     std::unique_ptr<Table> copy() const override { return std::make_unique<DBase4>(*this); }
        
     int getNumFields() const override;
-    std::string getColumnName(int column_index) const override;
+    const std::string & getColumnName(int column_index) const override;
     ColumnType getColumnType(int column_index) const override;
     
     void append(Table & other) override {
