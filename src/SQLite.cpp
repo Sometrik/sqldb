@@ -6,13 +6,11 @@
 
 #include "SQLException.h"
 
-using namespace std;
 using namespace sqldb;
 
 class SQLiteStatement : public SQLStatement {
 public:
-  SQLiteStatement(sqlite3 * db, sqlite3_stmt * stmt)
-    : db_(db), stmt_(stmt) {
+  SQLiteStatement(sqlite3 * db, sqlite3_stmt * stmt) : db_(db), stmt_(stmt) {
     assert(db_);
     assert(stmt_);
 
@@ -46,7 +44,6 @@ public:
       return;
       
     default:
-      // cerr << "unknown error: " << r << endl;
       assert(0);
       return;
     }
@@ -88,7 +85,7 @@ public:
     }
   }
     
-  void set(int column_idx, const void * data, size_t len, bool is_defined) {
+  void set(int column_idx, const void * data, size_t len, bool is_defined) override {
     int r;
     if (is_defined) r = sqlite3_bind_blob(stmt_, column_idx + 1, data, len, SQLITE_TRANSIENT);
     else r = sqlite3_bind_null(stmt_, column_idx + 1);
@@ -125,10 +122,10 @@ public:
     if (!isNull(column_index)) {
       auto s = (const char *)sqlite3_column_text(stmt_, column_index);
       if (s) {
-	return string(s);
+	return std::string(s);
       }
     }
-    return move(default_value);
+    return std::move(default_value);
   }
   std::vector<uint8_t> getBlob(int column_index) override {
     std::vector<uint8_t> r;
@@ -171,10 +168,10 @@ protected:
 private:
   sqlite3 * db_;
   sqlite3_stmt * stmt_;
-  vector<const char *> column_names_;
+  std::vector<const char *> column_names_;
 };
 
-SQLite::SQLite(const string & db_file, bool read_only) : db_file_(db_file), read_only_(read_only)
+SQLite::SQLite(const std::string & db_file, bool read_only) : db_file_(db_file), read_only_(read_only)
 {
   open();
 }
@@ -191,7 +188,7 @@ SQLite::~SQLite() {
   if (db_) {
     int r = sqlite3_close(db_);
     if (r) {
-      // cerr << "error while closing, r = " << r << endl;
+      // error
     }
   }
 }
@@ -244,7 +241,7 @@ SQLite::open() {
 				  latin1_compare
 				  );
     if (r) {
-      // cerr << "failed to create NOCASE collation\n";
+      // error
     }
   }
 
@@ -252,14 +249,14 @@ SQLite::open() {
 }
 
 std::unique_ptr<sqldb::SQLStatement>
-SQLite::prepare(string_view query) {
+SQLite::prepare(std::string_view query) {
   if (!db_) {
     throw SQLException(SQLException::PREPARE_FAILED);
   }
   sqlite3_stmt * stmt = 0;
   int r = sqlite3_prepare_v2(db_, query.data(), query.size(), &stmt, 0);
   if (r != SQLITE_OK) {
-    throw SQLException(SQLException::PREPARE_FAILED, sqlite3_errmsg(db_));
+    throw SQLException(SQLException::PREPARE_FAILED, sqlite3_errmsg(db_), std::string(query));
   }
   assert(stmt);  
   return std::make_unique<SQLiteStatement>(db_, stmt);
@@ -280,7 +277,7 @@ SQLiteStatement::step() {
       return;
 
     case SQLITE_BUSY:
-      // cerr << "database is busy\n";
+      // warning
       break;
       
     case SQLITE_ERROR: throw SQLException(SQLException::DATABASE_ERROR, sqlite3_errmsg(db_));
@@ -289,7 +286,7 @@ SQLiteStatement::step() {
     case SQLITE_MISMATCH: throw SQLException(SQLException::MISMATCH, sqlite3_errmsg(db_));
       
     default:
-      // cerr << "unknown error: " << r << endl;
+      // error
       assert(0);
       return;
     }
