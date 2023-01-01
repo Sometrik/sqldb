@@ -1,67 +1,150 @@
 #ifndef _SQLDB_KEY_H_
 #define _SQLDB_KEY_H_
 
-#include <iomanip>
-#include <sstream>
+#include "ColumnType.h"
+
+#include <vector>
 
 namespace sqldb {
+  template <class T>
+  inline void hash_combine(std::size_t & seed, const T & v) noexcept {
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  }
+
   class Key {
   public:
-    explicit Key() { }
-    explicit Key(std::string value) : value_(std::move(value)) { }
-    explicit Key(const char * value) : value_(value) { }
-    explicit Key(std::string value1, std::string value2) {
-      value_ = std::move(value1);
-      value_ += '|';
-      value_ += value2;
+    Key() noexcept { }
+    explicit Key(int value) noexcept {
+      addIntComponent(value);
     }
-    explicit Key(std::string value1, std::string value2, std::string value3) {
-      value_ = std::move(value1);
-      value_ += '|';
-      value_ += value2;
-      value_ += '|';
-      value_ += value3;
+    explicit Key(std::string value) noexcept {
+      addTextComponent(std::move(value));
+    }
+    explicit Key(std::string value1, std::string value2) noexcept {
+      addTextComponent(std::move(value1));
+      addTextComponent(std::move(value2));
+    }
+    explicit Key(std::string value1, std::string value2, std::string value3) noexcept {
+      addTextComponent(std::move(value1));
+      addTextComponent(std::move(value2));
+      addTextComponent(std::move(value3));
+    }
+    explicit Key(int value1, int value2, int value3, int value4) noexcept {
+      addIntComponent(value1);
+      addIntComponent(value2);
+      addIntComponent(value3);
+      addIntComponent(value4);
     }
 
     bool operator < (const Key & other) const {
-      return value_.compare(other.value_) == -1;
-    }
-    
-    const std::string & getValue() const { return value_; }
-
-    void clear() { value_.clear(); }
-    bool empty() const { return value_.empty(); }
-    size_t size() const { return value_.empty() ? 0 : 1; }
-
-    std::vector<std::string> getComponents() const {
-      std::vector<std::string> r;
-      size_t pos0 = 0;
-  
-      while (pos0 < value_.size()) {
-	auto pos1 = value_.find_first_of('|', pos0);
-	if (pos1 == std::string::npos) pos1 = value_.size();
-	r.push_back(value_.substr(pos0, pos1 - pos0));
-	pos0 = pos1 + 1;
+      size_t pos = 0;
+      while (pos < components_.size() && pos < other.components_.size()) {
+	switch (types_[pos]) {
+	case ColumnType::INT:
+	case ColumnType::ENUM:
+	case ColumnType::BOOL:
+	  return stoi(components_[pos]) < stoi(other.components_[pos]);
+	case ColumnType::INT64:
+	case ColumnType::DATETIME:
+	  return stoll(components_[pos]) < stoll(other.components_[pos]);
+	default:
+	  {
+	    auto cmp = components_[pos].compare(other.components_[pos]);
+	    if (cmp < 0) return true;
+	    else if (cmp > 0) return false;
+	    pos++;
+	  }
+	}
       }
-  
-      return r;
+      if (components_.size() < other.components_.size()) return true;
+      else return false;      
     }
 
-    void formatHex(int value) {
-      std::stringstream stream;
-      stream << std::setfill('0') << std::setw(8) << std::hex << value;
-      setValue(stream.str());
+    bool operator == (const Key & other) const {
+      if (components_.size() != other.components_.size()) return false;
+      for (size_t i = 0; i < components_.size(); i++) {
+	if (types_[i] != other.types_[i]) return false;
+	if (components_[i] != other.components_[i]) return false;
+      }
+      return true;
     }
 
-    void formatDec(int value) { value_ = std::to_string(value); }
+    bool operator != (const Key & other) const { return !(*this == other); }
 
-    void setValue(std::string value) {
-      value_ = std::move(value);
+    void clear() { components_.clear(); }
+    bool empty() const { return components_.empty(); }
+    size_t size() const { return components_.size(); }
+
+    void addIntComponent(int value) noexcept {
+      types_.push_back(ColumnType::INT);
+      components_.push_back(std::to_string(value));
+    }
+
+    void addLongLongComponent(long long value) noexcept {
+      types_.push_back(ColumnType::INT64);
+      components_.push_back(std::to_string(value));
+    }
+
+    void addTextComponent(std::string value) noexcept {
+      types_.push_back(ColumnType::VARCHAR);
+      components_.push_back(std::move(value));
+    }
+
+    ColumnType getType(size_t idx) const {
+      if (idx < types_.size()) {
+	return types_[idx];
+      } else {
+	return ColumnType::UNDEF;
+      }
     }
     
-  private:
-    std::string value_;
+    int getInt(size_t idx) const {
+      if (idx < components_.size()) {
+	return stoi(components_[idx]);
+      } else {
+	return 0;
+      }
+    }
+
+    long long getLongLong(size_t idx) const {
+      if (idx < components_.size()) {
+	return stoll(components_[idx]);
+      } else {
+	return 0LL;
+      }
+    }
+
+    // return by value, since Key is temporary when returned from Cursor
+    std::string getText(size_t idx) const {
+      if (idx < components_.size()) {
+	return components_[idx];
+      } else {
+	return "";
+      }
+    }
+
+    std::size_t hash_value() const noexcept {
+      std::size_t seed = 0;
+      for (auto & component : components_) {
+	hash_combine(seed, component);
+      }
+      return seed;
+    }
+    
+  private:    
+    std::vector<ColumnType> types_;
+    std::vector<std::string> components_;
   };
 };
+
+namespace std {
+  template <>
+  struct hash<sqldb::Key> {
+    std::size_t operator()(const sqldb::Key & key) const {
+      return key.hash_value();      
+    }
+  };
+}
 
 #endif
