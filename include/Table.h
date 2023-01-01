@@ -29,10 +29,7 @@ namespace sqldb {
     virtual std::unique_ptr<Cursor> increment(const Key & key) = 0;
     virtual std::unique_ptr<Cursor> assign(std::vector<int> columns) = 0;
     virtual void remove(const Key & key) = 0;
-
-    std::unique_ptr<Cursor> seek(std::string key) { return seek(Key(std::move(key))); }
-    std::unique_ptr<Cursor> insert(std::string key) { return insert(Key(std::move(key))); }
-
+    
     std::unique_ptr<Cursor> assign() {
       // Select all columns
       std::vector<int> cols(getNumFields());
