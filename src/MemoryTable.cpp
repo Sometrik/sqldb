@@ -27,7 +27,7 @@ public:
     Key key;
     {
       std::lock_guard<std::mutex> guard(mutex_);
-      key.addIntComponent(++auto_increment_);
+      key.addComponent(++auto_increment_);
     }
     return insertOrUpdate(key);
   }
@@ -102,7 +102,7 @@ public:
 		    )
     : storage_(storage), header_row_(storage->header_row_), selected_columns_(std::move(selected_columns)), is_increment_op_(false) { }
 
-  size_t execute() override {
+  size_t execute() override {    
     std::lock_guard<std::mutex> guard(storage_->mutex_);
     auto & data = storage_->data_;
     if (!pending_key_.empty()) {
