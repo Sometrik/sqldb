@@ -120,13 +120,13 @@ public:
     return idx < header_row_.size() ? header_row_[idx] : null_string;
   }
 
-  size_t getNextRowIdx() const { return next_row_idx_; }
+  int getNextRowIdx() const { return next_row_idx_; }
   
-  bool seek(size_t row) {
+  bool seek(int row) {
     if (row + 1 == next_row_idx_) {
       return true;
     }
-    if (row < row_offsets_.size()) {
+    if (row < static_cast<int>(row_offsets_.size())) {
       input_buffer_.clear();
       next_row_idx_ = row;
       fseek(in_, row_offsets_[next_row_idx_], SEEK_SET);    
@@ -134,7 +134,7 @@ public:
     }
     if (!row_offsets_.empty()) {
       input_buffer_.clear();
-      next_row_idx_ = row_offsets_.size() - 1;
+      next_row_idx_ = static_cast<int>(row_offsets_.size()) - 1;
       fseek(in_, row_offsets_.back(), SEEK_SET);
       row -= row_offsets_.size() - 1;
     }
@@ -155,7 +155,7 @@ public:
     }
     
     current_row_ = split(s, delimiter_);
-    if (next_row_idx_ == row_offsets_.size()) {
+    if (next_row_idx_ == static_cast<int>(row_offsets_.size())) {
       row_offsets_.push_back(row_offset);
     }
     next_row_idx_++;
@@ -211,7 +211,7 @@ private:
   std::string csv_file_;
   FILE * in_ = 0;
   char delimiter_ = 0;
-  size_t next_row_idx_ = 0;
+  int next_row_idx_ = 0;
   std::vector<std::string> header_row_;
   std::vector<std::string> current_row_;
   std::string input_buffer_;
@@ -251,7 +251,7 @@ public:
   
   Key getRowKey() const override {
     Key key;
-    if (csv_->getNextRowIdx() >= 1) key.addIntComponent(csv_->getNextRowIdx() - 1);
+    if (csv_->getNextRowIdx() >= 1) key.addComponent(csv_->getNextRowIdx() - 1);
     return key;
   }
 
