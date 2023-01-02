@@ -3,8 +3,8 @@
 
 #include "ColumnType.h"
 
-#include <string_view>
-#include <vector>
+#include <Key.h>
+
 #include <charconv>
 
 namespace sqldb {  
@@ -30,6 +30,14 @@ namespace sqldb {
 
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
+    }
+
+    virtual sqldb::Key getKey(int column_index) {
+      if (is_numeric(getColumnType(column_index))) {
+	return sqldb::Key(getLongLong(column_index));
+      } else {
+	return sqldb::Key(getText(column_index));
+      }
     }
     
     virtual bool getBool(int column_index, bool default_value = false) {
@@ -81,12 +89,27 @@ namespace sqldb {
     virtual void set(int column_idx, double value, bool is_defined = true) = 0;
     virtual void set(int column_idx, const void * data, size_t len, bool is_defined) = 0;
 
+    virtual void set(int column_idx, const sqldb::Key & key) {
+      if (key.empty()) {
+	set(column_idx, 0, false);
+      } else if (key.size() >= 2) {
+	set(column_idx, key.serializeToText());
+      } else if (sqldb::is_numeric(key.getType(0))) {
+	set(column_idx, key.getLongLong(0));
+      } else {
+	set(column_idx, key.getText(0));
+      }
+    }
+
     virtual void set(int column_idx, float value, bool is_defined = true) {
       set(column_idx, static_cast<double>(value), is_defined);
     }
 
     virtual long long getLastInsertId() const = 0;
 
+    void bind(const Key & value) {
+      set(getNextBindIndex(), value);
+    }
     void bind(int value, bool is_defined = true) {
       set(getNextBindIndex(), value, is_defined);
     }
