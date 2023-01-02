@@ -35,9 +35,7 @@ namespace sqldb {
       std::vector<int> cols(getNumFields());
       std::iota(cols.begin(), cols.end(), 0);
       return assign(std::move(cols));
-    }
-
-    void remove(std::string key) { remove(Key(std::move(key))); }
+    }    
     
     virtual std::unique_ptr<Table> copy() const = 0;
     virtual void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) = 0;
