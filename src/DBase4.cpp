@@ -78,8 +78,8 @@ public:
   Key getRowKey(int row) {
     Key key;
     if (row >= 0) {
-      if (primary_key_ == -1) key.addIntComponent(row);
-      else key.addTextComponent(getText(row, primary_key_));
+      if (primary_key_ == -1) key.addComponent(row);
+      else key.addComponent(getText(row, primary_key_));
     }
     return key;
   }
