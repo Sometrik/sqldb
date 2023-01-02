@@ -116,7 +116,7 @@ public:
     return default_value;
   }
   std::string_view getText(int column_index) override {
-    if (!isNull(column_index)) {
+    if (results_available_) {
       auto s = (const char *)sqlite3_column_text(stmt_, column_index);
       if (s) {
 	auto len = (size_t)sqlite3_column_bytes(stmt_, column_index);
@@ -127,7 +127,7 @@ public:
   }
   std::vector<uint8_t> getBlob(int column_index) override {
     std::vector<uint8_t> r;
-    if (!isNull(column_index)) {
+    if (results_available_) {
       auto data = reinterpret_cast<const uint8_t*>(sqlite3_column_blob(stmt_, column_index));
       auto len = sqlite3_column_bytes(stmt_, column_index);
       r.reserve(len);
@@ -143,6 +143,19 @@ public:
       return stmt_ ? sqlite3_column_type(stmt_, column_index) == SQLITE_NULL : true;
     }
   }
+  
+  ColumnType getColumnType(int column_index) const override {
+    switch (sqlite3_column_type(stmt_, column_index)) {
+    case SQLITE_INTEGER: return ColumnType::INT64;
+    case SQLITE_FLOAT: return ColumnType::FLOAT;
+    case SQLITE_BLOB: return ColumnType::VARCHAR; // should be blob
+    case SQLITE3_TEXT: return ColumnType::VARCHAR;
+    case SQLITE_NULL:
+    default:
+      break;
+    }
+    return ColumnType::UNDEF;
+    }
 
   int getNumFields() const override {
     return num_columns_;
