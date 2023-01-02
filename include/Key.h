@@ -25,6 +25,13 @@ namespace sqldb {
     explicit Key(std::string value) noexcept {
       if (!value.empty()) addComponent(std::move(value));
     }
+    explicit Key(std::string_view value) noexcept {
+      addComponent(std::string(value));
+    }
+    explicit Key(int value1, const Key & value2) noexcept {
+      addComponent(value1);
+      addComponent(value2);
+    }
     explicit Key(std::string value1, std::string value2) noexcept {
       addComponent(std::move(value1));
       addComponent(std::move(value2));
@@ -41,13 +48,7 @@ namespace sqldb {
       addComponent(value4);
     }
 
-    Key & operator=(int value) {
-      clear();
-      addComponent(value);
-      return *this;
-    }
-
-    bool operator < (const Key & other) const {
+    bool operator < (const Key & other) const noexcept {
       for (size_t pos = 0; pos < components_.size() && pos < other.components_.size(); pos++) {
 	if (components_[pos] < other.components_[pos]) return true;
       }
@@ -55,16 +56,16 @@ namespace sqldb {
       else return false;      
     }
 
-    bool operator == (const Key & other) const {
+    bool operator == (const Key & other) const noexcept {
       return components_ == other.components_;
     }
-    bool operator != (const Key & other) const {
+    bool operator != (const Key & other) const noexcept {
       return components_ != other.components_;
     }
 
-    void clear() { components_.clear(); }
-    bool empty() const { return components_.empty(); }
-    size_t size() const { return components_.size(); }
+    void clear() noexcept { components_.clear(); }
+    bool empty() const noexcept { return components_.empty(); }
+    size_t size() const noexcept { return components_.size(); }
 
     void addComponent(int value) noexcept {
       components_.push_back(value);
@@ -82,7 +83,7 @@ namespace sqldb {
       components_.push_back(std::string(value));
     }
 
-    void addComponent(const Key & other) {
+    void addComponent(const Key & other) noexcept {
       if (other.getType(0) == ColumnType::INT64) {
 	addComponent(other.getLongLong(0));
       } else {
@@ -90,7 +91,7 @@ namespace sqldb {
       }
     }
 
-    ColumnType getType(size_t idx) const {
+    ColumnType getType(size_t idx) const noexcept {
       if (idx < components_.size()) {
 	auto & component = components_[idx];
 	if (std::holds_alternative<long long>(component)) {
@@ -102,11 +103,11 @@ namespace sqldb {
       return ColumnType::UNDEF;
     }
     
-    int getInt(size_t idx) const {
+    int getInt(size_t idx) const noexcept {
       return getLongLong(idx);
     }
     
-    long long getLongLong(size_t idx) const {
+    long long getLongLong(size_t idx) const noexcept {
       if (idx < components_.size()) {
 	if (std::holds_alternative<long long>(components_[idx])) {
 	  return std::get<long long>(components_[idx]);
@@ -118,7 +119,7 @@ namespace sqldb {
     }
 
     // return by value, since Key is temporary when returned from Cursor
-    std::string getText(size_t idx) const {
+    std::string getText(size_t idx) const noexcept {
       if (idx < components_.size()) {
 	if (std::holds_alternative<std::string>(components_[idx])) {
 	  return std::get<std::string>(components_[idx]);
@@ -127,6 +128,18 @@ namespace sqldb {
 	}
       }
       return "";
+    }
+
+    Key getKey(size_t idx) const noexcept {
+      Key key;
+      if (idx < components_.size()) {
+	if (std::holds_alternative<std::string>(components_[idx])) {
+	  key.addComponent(std::get<std::string>(components_[idx]));
+	} else {
+	  key.addComponent(std::get<long long>(components_[idx]));
+	}
+      }
+      return key;
     }
 
     size_t getHash() const noexcept {
@@ -143,15 +156,15 @@ namespace sqldb {
       return seed;
     }
 
-    std::string serialize() const {
-      return getText(0); // FIXME: serialize all the parts to binary
+    std::string serializeToText() const noexcept {
+      return getText(0); // FIXME: serialize all the parts
     }
 
   private:    
     std::vector<std::variant<long long, std::string>> components_;
   };
 
-  static inline std::string to_string(const Key & key) {
+  static inline std::string to_string(const Key & key) noexcept {
     std::string s;
     for (size_t i = 0; i < key.size(); i++) {
       if (!s.empty()) s += "|";
@@ -177,7 +190,7 @@ namespace robin_hood {
 namespace std {
   template <>
   struct hash<sqldb::Key> {
-    std::size_t operator()(const sqldb::Key & key) const {
+    std::size_t operator()(const sqldb::Key & key) const noexcept {
       return key.getHash();      
     }
   };
