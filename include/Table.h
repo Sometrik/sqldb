@@ -17,9 +17,10 @@ namespace sqldb {
   class Table {
   public:
     Table() { }
+    Table(std::vector<ColumnType> key_type) : key_type_(std::move(key_type)) { }
+    
     virtual ~Table() { }
     
-    virtual bool hasNumericKey() const { return false; }
     virtual std::unique_ptr<Cursor> seekBegin() = 0;
     virtual std::unique_ptr<Cursor> seek(const Key & key) = 0;
     virtual std::unique_ptr<Cursor> seek(int row) { return std::unique_ptr<Cursor>(nullptr); }
@@ -114,6 +115,14 @@ namespace sqldb {
       return r;
     }
 
+    bool hasNumericKey() const {
+      return key_type_.size() == 1 && is_numeric(key_type_.front());
+    }
+    
+    const std::vector<ColumnType> getKeyType() const { return key_type_; }
+    void setKeyType(std::vector<ColumnType> key_type) { key_type_ = std::move(key_type); }
+    size_t getKeySize() const { return key_type_.size(); }
+    
     void setSortCol(int sort_col, int sort_subcol, bool desc = false) {
       sort_col_ = sort_col;
       sort_subcol_ = sort_subcol;
@@ -123,8 +132,9 @@ namespace sqldb {
     int getSortCol() const { return sort_col_; }
     int getSortSubcol() const { return sort_subcol_; }
     bool isDescSort() const { return desc_sort_; }
-    
+
   private:
+    std::vector<ColumnType> key_type_;
     int sort_col_ = -1, sort_subcol_ = -1;
     bool desc_sort_ = false;
   };

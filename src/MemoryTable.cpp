@@ -303,8 +303,12 @@ MemoryStorage::assign(std::vector<int> columns) {
   return std::make_unique<MemoryTableCursor>(this, columns);
 }
  
-MemoryTable::MemoryTable(bool numeric_key)
-  : numeric_key_(numeric_key), storage_(make_shared<MemoryStorage>()) { }
+MemoryTable::MemoryTable()
+  : storage_(make_shared<MemoryStorage>()) { }
+
+MemoryTable::MemoryTable(std::vector<ColumnType> key_type)
+  : Table(std::move(key_type)), storage_(make_shared<MemoryStorage>()) {
+}
 
 void
 MemoryTable::addColumn(std::string_view name, sqldb::ColumnType type, bool unique) {
@@ -374,6 +378,7 @@ MemoryTable::isColumnUnique(int column_index) const {
 void
 MemoryTable::append(Table & other) {
   if (!getNumFields()) { // FIXME 
+    setKeyType(other.getKeyType());
     for (int i = 0; i < other.getNumFields(); i++) {
       addColumn(other.getColumnName(i), other.getColumnType(i), other.isColumnUnique(i));
     }

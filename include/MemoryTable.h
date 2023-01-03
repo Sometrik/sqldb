@@ -10,9 +10,8 @@ namespace sqldb {
   
   class MemoryTable : public Table {
   public:
-    MemoryTable(bool numeric_key = false);
-
-    bool hasNumericKey() const override { return numeric_key_; }
+    MemoryTable();
+    MemoryTable(std::vector<ColumnType> key_type);
 
     std::unique_ptr<Table> copy() const override { return std::make_unique<MemoryTable>(*this); }
 
@@ -39,7 +38,6 @@ namespace sqldb {
     void clear() override;
           
   private:
-    bool numeric_key_;
     std::shared_ptr<MemoryStorage> storage_;
   };
 };
