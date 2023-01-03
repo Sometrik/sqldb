@@ -259,7 +259,7 @@ unique_ptr<Cursor>
 DBase4::seek(const Key & key) {
   assert(key.size() == 1);
   if (!primary_key_mapping_.empty()) {
-    auto it = primary_key_mapping_.find(key.getText(0));
+    auto it = primary_key_mapping_.find(key);
     if (it != primary_key_mapping_.end()) {
       return seek(it->second);
     } else {

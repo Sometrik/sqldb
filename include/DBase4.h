@@ -59,11 +59,11 @@ namespace sqldb {
     std::unique_ptr<Cursor> seek(const Key & key) override;
     std::unique_ptr<Cursor> seek(int row) override;
 
-    void setPrimaryKeyMapping(std::unordered_map<std::string, int> m) { primary_key_mapping_ = std::move(m); }
+    void setPrimaryKeyMapping(std::unordered_map<sqldb::Key, int> m) { primary_key_mapping_ = std::move(m); }
 
   private:    
     std::shared_ptr<DBase4File> dbf_;
-    std::unordered_map<std::string, int> primary_key_mapping_;
+    std::unordered_map<sqldb::Key, int> primary_key_mapping_;
   };
 };
 
