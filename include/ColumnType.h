@@ -14,9 +14,10 @@ namespace sqldb {
       FLOAT,
       DOUBLE,
       URL,
-      HIERARCHICAL_KEY,
+      TEXT_KEY,
+      BINARY_KEY,
       ENUM,
-      IMAGE, // image (blob)
+      BLOB
       };
 
   static inline bool is_numeric(ColumnType type) {
@@ -33,9 +34,10 @@ namespace sqldb {
     case ColumnType::VARCHAR:
     case ColumnType::TEXT:
     case ColumnType::URL:
-    case ColumnType::HIERARCHICAL_KEY:
+    case ColumnType::TEXT_KEY:
+    case ColumnType::BINARY_KEY:
     case ColumnType::ENUM:
-    case ColumnType::IMAGE:
+    case ColumnType::BLOB:
       break;
     }
     return false;
