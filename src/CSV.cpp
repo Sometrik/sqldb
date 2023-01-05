@@ -101,20 +101,17 @@ public:
   }
   
   std::string_view getText(int column_index) const {
-    if (column_index >= 0 && column_index < current_row_.size()) {
-      return current_row_[column_index];
-    }
-    return null_string;
+    auto idx = static_cast<size_t>(column_index);
+    return idx < current_row_.size() ? current_row_[idx] : null_string;
   }
 
   bool isNull(int column_index) const {
-    if (column_index >= 0 && column_index < current_row_.size()) {
-      return current_row_[column_index].empty();
-    }
-    return true;
+    auto idx = static_cast<size_t>(column_index);
+    return idx < current_row_.size() ? current_row_[idx].empty() : true;
   }
 
   int getNumFields() const { return static_cast<int>(header_row_.size()); }
+  
   const std::string & getColumnName(int column_index) const {
     auto idx = static_cast<size_t>(column_index);
     return idx < header_row_.size() ? header_row_[idx] : null_string;
