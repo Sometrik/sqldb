@@ -143,12 +143,12 @@ public:
       auto & v = it->second;
 
       for (size_t i = 0; i < selected_columns_.size(); i++) {
-	auto col = selected_columns_[i];
+	auto col = static_cast<size_t>(selected_columns_[i]);
 	auto it = pending_row_.find(static_cast<int>(i));
 	if (it != pending_row_.end()) {
-	  if (v.size() <= static_cast<size_t>(col)) v.resize(static_cast<size_t>(col) + 1);
+	  if (col >= v.size()) v.resize(col + 1);
 	  v[col] = it->second;
-	} else if (static_cast<int>(col) < v.size()) {
+	} else if (col < v.size()) {
 	  v[col].clear();
 	}
       }
