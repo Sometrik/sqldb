@@ -102,6 +102,7 @@ namespace sqldb {
     void addBinaryKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::BINARY_KEY); }
     void addEnumColumn(std::string_view name) { addColumn(std::move(name), ColumnType::ENUM); }
     void addBoolColumn(std::string_view name) { addColumn(std::move(name), ColumnType::BOOL); }
+    void addBlobColumn(std::string_view name) { addColumn(std::move(name), ColumnType::BLOB); }
     
     std::string dumpRow(const Key & key) {
       std::string r;
