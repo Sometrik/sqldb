@@ -125,6 +125,9 @@ namespace sqldb {
     void bind(const void * data, size_t len, bool is_defined) {
       set(getNextBindIndex(), data, len, is_defined);
     }
+    void bind(const std::vector<uint8_t> & data, bool is_defined = true) {
+      set(getNextBindIndex(), data.data(), data.size(), is_defined);
+    }
     void bind(bool value, bool is_defined = true) {
       bind(value ? 1 : 0, is_defined);
     }
