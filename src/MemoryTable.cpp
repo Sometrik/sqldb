@@ -170,7 +170,7 @@ public:
   void set(int column_idx, int value, bool is_defined = true) override { set(column_idx, std::to_string(value), is_defined); }
   void set(int column_idx, long long value, bool is_defined = true) override { set(column_idx, std::to_string(value), is_defined); }
   void set(int column_idx, double value, bool is_defined = true) override { set(column_idx, std::to_string(value), is_defined); }
-  void set(int column_idx, const void * data, size_t len, bool is_defined = true) override { set(column_idx, std::string(reinterpret_cast<const char *>(data), len), is_defined); }
+  void set(int column_idx, const void * data, size_t len, bool is_defined = true) override { set(column_idx, std::string_view(reinterpret_cast<const char *>(data), len), is_defined); }
 
   bool next() override {
     std::lock_guard<std::mutex> guard(storage_->mutex_);
