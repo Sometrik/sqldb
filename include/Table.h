@@ -135,10 +135,14 @@ namespace sqldb {
     int getSortSubcol() const { return sort_subcol_; }
     bool isDescSort() const { return desc_sort_; }
 
+    void setFilter(int col) { filter_col_ = col; }
+    int getFilter() const { return filter_col_; }
+    
   private:
     std::vector<ColumnType> key_type_;
     int sort_col_ = -1, sort_subcol_ = -1;
     bool desc_sort_ = false;
+    int filter_col_ = -1;
   };
 };
 
