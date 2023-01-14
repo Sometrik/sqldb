@@ -11,7 +11,7 @@ namespace sqldb {
     MySQL() { }
     ~MySQL();
     
-    void connect(const std::string & host_name, int port, const std::string & user_name, const std::string & password, const std::string & db_name);
+    void connect(std::string host_name, int port, std::string user_name, std::string password, std::string db_name);
     void connect();
     
     std::unique_ptr<SQLStatement> prepare(std::string_view query) override;
@@ -22,12 +22,12 @@ namespace sqldb {
 
     size_t execute(std::string_view query) override;
 
-    bool isConnected() const { return conn != 0; }
+    bool isConnected() const { return conn_ != 0; }
 
   private:
-    MYSQL * conn = 0;
-    std::string host_name, user_name, password, db_name;
-    int port = 0;
+    MYSQL * conn_ = 0;
+    std::string host_name_, user_name_, password_, db_name_;
+    int port_ = 0;
   };
 };
 
