@@ -36,10 +36,11 @@ namespace sqldb {
       addComponent(std::move(value1));
       addComponent(std::move(value2));
     }
-    explicit Key(Key value1, Key value2, Key value3) noexcept {
+    explicit Key(Key value1, Key value2, Key value3, Key value4) noexcept {
       addComponent(std::move(value1));
       addComponent(std::move(value2));
       addComponent(std::move(value3));
+      addComponent(std::move(value4));
     }
     explicit Key(int value1, int value2, int value3, int value4) noexcept {
       addComponent(value1);
