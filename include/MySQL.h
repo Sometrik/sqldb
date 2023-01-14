@@ -20,7 +20,7 @@ namespace sqldb {
     void commit() override;
     void rollback() override;
 
-    size_t execute(std::string_view query) override;
+    std::pair<size_t, size_t> execute(std::string_view query) override;
 
     bool isConnected() const { return conn_ != 0; }
 

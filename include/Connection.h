@@ -27,9 +27,10 @@ namespace sqldb {
     virtual void rollback() {
       execute("ROLLBACK");
     }
-    virtual size_t execute(std::string_view query) {
+    virtual std::pair<size_t, size_t> execute(std::string_view query) {
       auto stmt = prepare(query);
-      return stmt->execute();
+      stmt->execute();
+      return std::pair(stmt->getAffectedRows(), stmt->getNumWarnings());
     }
     virtual bool ping() { return true; }    
     virtual bool isConnected() const = 0;

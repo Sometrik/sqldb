@@ -14,6 +14,7 @@ namespace sqldb {
     }
 
     virtual size_t getAffectedRows() const = 0;
+    virtual size_t getNumWarnings() const { return 0; }
   
     bool resultsAvailable() const { return results_available_; }
 

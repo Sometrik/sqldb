@@ -56,6 +56,7 @@ public:
   
   long long getLastInsertId() const override { return last_insert_id_; }
   size_t getAffectedRows() const override { return rows_affected_; }
+  size_t getNumWarnings() const override { return num_warnings_; }
   int getNumFields() const override { return num_bound_variables_; }
 
   const std::string & getColumnName(int column_idx) {
@@ -71,7 +72,7 @@ private:
   int num_bound_variables_ = 0;       
   bool has_result_set_ = false, is_query_executed_ = false;
   long long last_insert_id_ = 0;
-  unsigned int rows_affected_ = 0;
+  size_t rows_affected_ = 0, num_warnings_ = 0;
   
   MYSQL_BIND bind_data_[MYSQL_MAX_BOUND_VARIABLES];
   size_t bind_length_[MYSQL_MAX_BOUND_VARIABLES];
@@ -181,14 +182,14 @@ MySQL::ping() {
   }
 }
 
-size_t
+std::pair<size_t, size_t>
 MySQL::execute(std::string_view query) {
   if (mysql_real_query(conn_, query.data(), query.size()) != 0) {
     throw SQLException(SQLException::EXECUTE_FAILED, mysql_error(conn_), string(query));
   }
-  auto r = mysql_affected_rows(conn_);
-  assert((long long)r >= 0);
-  return r;
+  auto affected_rows = mysql_affected_rows(conn_);
+  auto warnings = mysql_warning_count(conn_);
+  return pair(affected_rows, warnings);
 }
 
 size_t
@@ -213,6 +214,7 @@ MySQLStatement::execute() {
   } else {
     rows_affected_ = 0;
   }
+  num_warnings_ = mysql_stmt_warning_count(stmt_);
   last_insert_id_ = mysql_stmt_insert_id(stmt_);
     
   // NULL if no metadata / results
@@ -264,7 +266,6 @@ MySQLStatement::reset() {
   SQLStatement::reset();
 
   string_cache_.clear();
-
   rows_affected_ = 0;
   is_query_executed_ = false;
   has_result_set_ = false;
@@ -281,7 +282,8 @@ MySQLStatement::next() {
   SQLStatement::reset();
   
   assert(stmt_);
-  
+
+  string_cache_.clear();
   rows_affected_ = 0;
   
   if (!is_query_executed_) {
