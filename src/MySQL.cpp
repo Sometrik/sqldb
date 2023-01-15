@@ -6,8 +6,7 @@
 #include <SQLException.h>
 
 #define MYSQL_MAX_BOUND_VARIABLES 255
-#define MYSQL_BIND_BUFFER_SIZE 0x10000
-// #define MYSQL_BIND_BUFFER_SIZE 64
+#define MYSQL_BIND_BUFFER_SIZE 4096
 
 using namespace std;
 using namespace sqldb;
@@ -17,11 +16,7 @@ public:
   MySQLStatement(MYSQL_STMT * stmt) : stmt_(stmt) {
     assert(stmt_);
     num_bound_variables_ = mysql_stmt_param_count(stmt_);
-    
-    for (unsigned int i = 0; i < MYSQL_MAX_BOUND_VARIABLES; i++) {
-      bind_ptr_[i] = 0;
-    }
-    
+        
     reset();
   }
 
@@ -29,10 +24,6 @@ public:
     if (stmt_) {
       mysql_stmt_free_result(stmt_);
       mysql_stmt_close(stmt_);
-    }
-    for (unsigned int i = 0; i < MYSQL_MAX_BOUND_VARIABLES; i++) {
-      char * ptr = bind_ptr_[i];
-      if (ptr) delete[] ptr;
     }
   }
   
@@ -46,13 +37,13 @@ public:
   void set(int column_idx, const void * data, size_t len, bool is_defined = true) override;
   void set(int column_idx, double value, bool is_defined = true) override;
   
-  int getInt(int column_index, int default_value = 0) override;
-  double getDouble(int column_index, double default_value = 0.0) override;
-  long long getLongLong(int column_index, long long default_value = 0LL) override;
-  std::string_view getText(int column_index) override;
-  std::vector<uint8_t> getBlob(int column_index) override;
+  int getInt(int column_idx, int default_value = 0) override;
+  double getDouble(int column_idx, double default_value = 0.0) override;
+  long long getLongLong(int column_idx, long long default_value = 0LL) override;
+  std::string_view getText(int column_idx) override;
+  std::vector<uint8_t> getBlob(int column_idx) override;
   
-  bool isNull(int column_index) const override;
+  bool isNull(int column_idx) const override;
   
   long long getLastInsertId() const override { return last_insert_id_; }
   size_t getAffectedRows() const override { return rows_affected_; }
@@ -78,10 +69,9 @@ private:
   size_t bind_length_[MYSQL_MAX_BOUND_VARIABLES];
   my_bool bind_is_null_[MYSQL_MAX_BOUND_VARIABLES];
   my_bool bind_error_[MYSQL_MAX_BOUND_VARIABLES];
-  char bind_buffer_[MYSQL_MAX_BOUND_VARIABLES * MYSQL_BIND_BUFFER_SIZE];
-  char * bind_ptr_[MYSQL_MAX_BOUND_VARIABLES];
-
-  std::unordered_map<int, std::string> string_cache_;
+  char bind_out_buffer_[MYSQL_MAX_BOUND_VARIABLES * MYSQL_BIND_BUFFER_SIZE];
+  // char bind_in_buffer_[MYSQL_MAX_BOUND_VARIABLES * MYSQL_BIND_BUFFER_SIZE];
+  std::vector<unique_ptr<char[]>> bind_out_ptr_, bind_in_ptr_;
 
   static inline my_bool is_null = 1, is_not_null = 0;
   static inline std::string empty_string;
@@ -202,7 +192,7 @@ MySQLStatement::execute() {
   }
   
   // Fetch result set meta information
-  MYSQL_RES * prepare_meta_result = mysql_stmt_result_metadata(stmt_);
+  auto prepare_meta_result = mysql_stmt_result_metadata(stmt_);
   
   if (mysql_stmt_execute(stmt_) != 0) {
     throw SQLException(SQLException::EXECUTE_FAILED, mysql_stmt_error(stmt_));
@@ -239,20 +229,7 @@ MySQLStatement::execute() {
     
     /* Bind the result buffers */
     if (mysql_stmt_bind_result(stmt_, bind_data_) || mysql_stmt_store_result(stmt_)) {
-      for (int i = 0; i < num_bound_variables_; i++) {
-	if (bind_ptr_[i]) {
-	  delete[] bind_ptr_[i];
-	  bind_ptr_[i] = 0;
-	}
-      }
       throw SQLException(SQLException::EXECUTE_FAILED, mysql_stmt_error(stmt_));
-    }
-    
-    for (int i = 0; i < num_bound_variables_; i++) {
-      if (bind_ptr_[i]) {
-	delete[] bind_ptr_[i];
-	bind_ptr_[i] = 0;
-      }
     }
     
     has_result_set_ = true;
@@ -265,11 +242,13 @@ void
 MySQLStatement::reset() {
   SQLStatement::reset();
 
-  string_cache_.clear();
   rows_affected_ = 0;
   is_query_executed_ = false;
   has_result_set_ = false;
-  
+
+  bind_out_ptr_.clear();
+  bind_in_ptr_.clear();
+
   memset(bind_data_, 0, num_bound_variables_ * sizeof(MYSQL_BIND));
   for (int i = 0; i < num_bound_variables_; i++) {
     set(i, 0, false);
@@ -283,11 +262,11 @@ MySQLStatement::next() {
   
   assert(stmt_);
 
-  string_cache_.clear();
+  bind_in_ptr_.clear();
   rows_affected_ = 0;
   
   if (!is_query_executed_) {
-    execute();    
+    execute();
   }
   
   if (has_result_set_) {
@@ -343,16 +322,16 @@ MySQLStatement::set(int column_idx, const void * data, size_t len, bool is_defin
 }
 
 int
-MySQLStatement::getInt(int column_index, int default_value) {
-  if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
+MySQLStatement::getInt(int column_idx, int default_value) {
+  if (column_idx < 0 || column_idx >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
 
   assert(stmt_);
   
   long a = default_value;
    
-  if (bind_is_null_[column_index]) {
+  if (bind_is_null_[column_idx]) {
 
-  } else if (bind_length_[column_index]) {
+  } else if (bind_length_[column_idx]) {
     long unsigned int dummy1;
     my_bool dummy2;
     MYSQL_BIND b;
@@ -362,7 +341,7 @@ MySQLStatement::getInt(int column_index, int default_value) {
     b.buffer_length = sizeof(a);
     b.length = &dummy1; 
     b.is_null = &dummy2;
-    if (mysql_stmt_fetch_column(stmt_, &b, column_index, 0) != 0) {
+    if (mysql_stmt_fetch_column(stmt_, &b, column_idx, 0) != 0) {
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt_));
     }
   }
@@ -371,14 +350,14 @@ MySQLStatement::getInt(int column_index, int default_value) {
 }
 
 double
-MySQLStatement::getDouble(int column_index, double default_value) {
-  if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
+MySQLStatement::getDouble(int column_idx, double default_value) {
+  if (column_idx < 0 || column_idx >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
   assert(stmt_);
   double a = default_value;
    
-  if (bind_is_null_[column_index]) {
+  if (bind_is_null_[column_idx]) {
     // cerr << "null value\n";
-  } else if (1 || bind_length_[column_index]) {
+  } else if (1 || bind_length_[column_idx]) {
     long unsigned int dummy1;
     my_bool dummy2;
     MYSQL_BIND b;
@@ -388,7 +367,7 @@ MySQLStatement::getDouble(int column_index, double default_value) {
     b.buffer_length = sizeof(a);
     b.length = &dummy1; 
     b.is_null = &dummy2;
-    if (mysql_stmt_fetch_column(stmt_, &b, column_index, 0) != 0) {
+    if (mysql_stmt_fetch_column(stmt_, &b, column_idx, 0) != 0) {
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt_));
     }
   } else {
@@ -399,16 +378,16 @@ MySQLStatement::getDouble(int column_index, double default_value) {
 }
 
 long long
-MySQLStatement::getLongLong(int column_index, long long default_value) {
-  if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
+MySQLStatement::getLongLong(int column_idx, long long default_value) {
+  if (column_idx < 0 || column_idx >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
 
   assert(stmt_);
   
   long long a = default_value;
    
-  if (bind_is_null_[column_index]) {
+  if (bind_is_null_[column_idx]) {
 
-  } else if (bind_length_[column_index]) {
+  } else if (bind_length_[column_idx]) {
     long unsigned int dummy1;
     my_bool dummy2;
     MYSQL_BIND b;
@@ -418,7 +397,7 @@ MySQLStatement::getLongLong(int column_index, long long default_value) {
     b.buffer_length = sizeof(a);
     b.length = &dummy1;
     b.is_null = &dummy2;
-    if (mysql_stmt_fetch_column(stmt_, &b, column_index, 0) != 0) {
+    if (mysql_stmt_fetch_column(stmt_, &b, column_idx, 0) != 0) {
       throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt_));
     }
   }
@@ -427,37 +406,37 @@ MySQLStatement::getLongLong(int column_index, long long default_value) {
 }
 
 string_view
-MySQLStatement::getText(int column_index) {
-  if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
+MySQLStatement::getText(int column_idx) {
+  if (column_idx < 0 || column_idx >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
 
   assert(stmt_);
     
-  if (!bind_is_null_[column_index]) {
-    auto len = bind_length_[column_index];
+  if (!bind_is_null_[column_idx]) {
+    auto len = bind_length_[column_idx];
 
     if (len) {
-      auto [ it, is_new ] = string_cache_.emplace(column_index, "");
+      auto tmp = make_unique<char[]>(len);
+	
+      long unsigned int dummy1;
+      my_bool dummy2;
+      MYSQL_BIND b;
+      memset(&b, 0, sizeof(MYSQL_BIND));
+      b.buffer_type = MYSQL_TYPE_STRING;
+      b.buffer = tmp.get();
+      b.buffer_length = len;
+      b.length = &dummy1; 
+      b.is_null = &dummy2;
       
-      if (is_new) {
-	auto tmp = make_unique<char[]>(len);
-	
-	long unsigned int dummy1;
-	my_bool dummy2;
-	MYSQL_BIND b;
-	memset(&b, 0, sizeof(MYSQL_BIND));
-	b.buffer_type = MYSQL_TYPE_STRING;
-	b.buffer = tmp.get();
-	b.buffer_length = len;
-	b.length = &dummy1; 
-	b.is_null = &dummy2;
-	
-	if (mysql_stmt_fetch_column(stmt_, &b, column_index, 0) != 0) {
-	  throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt_));
-	}
-	it->second = string(tmp.get(), len);
+      if (mysql_stmt_fetch_column(stmt_, &b, column_idx, 0) != 0) {
+	throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt_));
       }
-            
-      return it->second;
+
+      string_view r(tmp.get(), len);
+      
+      if (static_cast<int>(bind_in_ptr_.size()) <= column_idx) bind_in_ptr_.resize(column_idx + 1);
+      bind_in_ptr_[column_idx] = std::move(tmp);
+
+      return r;
     }
   }
   
@@ -465,36 +444,35 @@ MySQLStatement::getText(int column_index) {
 }
 
 std::vector<uint8_t>
-MySQLStatement::getBlob(int column_index) {
-  if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
+MySQLStatement::getBlob(int column_idx) {
+  if (column_idx < 0 || column_idx >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
 
   assert(stmt_);
   
-  auto len = (size_t)bind_length_[column_index];
-
   std::vector<uint8_t> s;
   
-  if (bind_is_null_[column_index]) {
-
-  } else if (len) {
-    auto tmp = make_unique<char[]>(len);
-    
-    long unsigned int dummy1;
-    my_bool dummy2;
-    MYSQL_BIND b;
-
-    memset(&b, 0, sizeof(MYSQL_BIND));
-    b.buffer_type = MYSQL_TYPE_BLOB;
-    b.buffer = tmp.get();
-    b.buffer_length = len;
-    b.length = &dummy1; 
-    b.is_null = &dummy2;
-    
-    if (mysql_stmt_fetch_column(stmt_, &b, column_index, 0) != 0) {
-      throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt_));
-    }
-    for (size_t i = 0; i < len; i++) {
-      s.push_back(tmp[i]);
+  if (!bind_is_null_[column_idx]) {
+    auto len = (size_t)bind_length_[column_idx];
+    if (len) {
+      auto tmp = make_unique<char[]>(len);
+      
+      long unsigned int dummy1;
+      my_bool dummy2;
+      MYSQL_BIND b;
+      
+      memset(&b, 0, sizeof(MYSQL_BIND));
+      b.buffer_type = MYSQL_TYPE_BLOB;
+      b.buffer = tmp.get();
+      b.buffer_length = len;
+      b.length = &dummy1; 
+      b.is_null = &dummy2;
+      
+      if (mysql_stmt_fetch_column(stmt_, &b, column_idx, 0) != 0) {
+	throw SQLException(SQLException::GET_FAILED, mysql_stmt_error(stmt_));
+      }
+      for (size_t i = 0; i < len; i++) {
+	s.push_back(tmp[i]);
+      }
     }
   }
 
@@ -502,9 +480,9 @@ MySQLStatement::getBlob(int column_index) {
 }
 
 bool
-MySQLStatement::isNull(int column_index) const {
-  if (column_index < 0 || column_index >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
-  return bind_is_null_[column_index];
+MySQLStatement::isNull(int column_idx) const {
+  if (column_idx < 0 || column_idx >= MYSQL_MAX_BOUND_VARIABLES) throw SQLException(SQLException::BAD_COLUMN_INDEX, "");
+  return bind_is_null_[column_idx];
 }
 
 void
@@ -514,10 +492,12 @@ MySQLStatement::setData(int column_idx, enum_field_types buffer_type, const void
   }
   char * buffer;
   if (size <= MYSQL_BIND_BUFFER_SIZE) {
-    buffer = &bind_buffer_[column_idx * MYSQL_BIND_BUFFER_SIZE];
+    buffer = &bind_out_buffer_[column_idx * MYSQL_BIND_BUFFER_SIZE];
   } else {
-    delete[] bind_ptr_[column_idx];
-    buffer = bind_ptr_[column_idx] = new char[size];
+    auto tmp = unique_ptr<char[]>(new char[size]);
+    buffer = tmp.get();
+    if (static_cast<int>(bind_out_ptr_.size()) <= column_idx) bind_out_ptr_.resize(column_idx + 1);
+    bind_out_ptr_[column_idx] = move(tmp);
   }
   memcpy(buffer, ptr, size);
   bind_data_[column_idx].buffer_type = buffer_type;
