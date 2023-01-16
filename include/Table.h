@@ -122,7 +122,7 @@ namespace sqldb {
       return key_type_.size() == 1 && is_numeric(key_type_.front());
     }
     
-    const std::vector<ColumnType> getKeyType() const { return key_type_; }
+    const std::vector<ColumnType> & getKeyType() const { return key_type_; }
     void setKeyType(std::vector<ColumnType> key_type) { key_type_ = std::move(key_type); }
     size_t getKeySize() const { return key_type_.size(); }
     
