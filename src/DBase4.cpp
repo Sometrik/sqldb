@@ -94,7 +94,7 @@ public:
 
   ColumnType getColumnType(int column_index) const {
     auto idx = static_cast<size_t>(column_index);
-    return idx < column_types_.size() ? column_types_[idx] : ColumnType::UNDEF;
+    return idx < column_types_.size() ? column_types_[idx] : ColumnType::ANY;
   }
   
 private:
@@ -122,7 +122,7 @@ private:
 	break;
       case FTInvalid:
       default:
-	column_types_.push_back(ColumnType::UNDEF);
+	column_types_.push_back(ColumnType::ANY);
 	break;
       }
     }

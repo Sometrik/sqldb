@@ -29,11 +29,21 @@ namespace sqldb {
     virtual const std::string & getColumnName(int column_index) = 0;
 
     virtual ColumnType getColumnType(int column_index) const {
-      return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
+      return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::ANY;
     }
 
     virtual sqldb::Key getKey(int column_index) {
-      if (is_numeric(getColumnType(column_index))) {
+      auto type = getColumnType(column_index);
+      if (type == ColumnType::ANY) {
+	auto s = getText(column_index);
+	long long ll;
+	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), ll);
+	if (ec != std::errc()) {
+	  return Key(ll);
+	} else {
+	  return Key(s);
+	}
+      } else if (is_numeric(type)) {
 	return sqldb::Key(getLongLong(column_index));
       } else {
 	return sqldb::Key(getText(column_index));

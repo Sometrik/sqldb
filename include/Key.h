@@ -101,7 +101,7 @@ namespace sqldb {
 	  return ColumnType::VARCHAR;
 	}
       }
-      return ColumnType::UNDEF;
+      return ColumnType::ANY;
     }
     
     int getInt(size_t idx) const noexcept {
@@ -158,7 +158,12 @@ namespace sqldb {
     }
 
     std::string serializeToText() const noexcept {
-      return getText(0); // FIXME: serialize all the parts
+      std::string s;
+      for (size_t i = 0; i < components_.size(); i++) {
+	if (i != 0) s += "|";
+	s += getText(i);
+      }
+      return s;
     }
 
   private:    

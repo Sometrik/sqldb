@@ -154,7 +154,7 @@ public:
     default:
       break;
     }
-    return ColumnType::UNDEF;
+    return ColumnType::ANY;
     }
 
   int getNumFields() const override {

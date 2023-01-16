@@ -57,7 +57,7 @@ public:
   ColumnType getColumnType(int column_index) const {
     std::lock_guard<std::mutex> guard(mutex_);
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row_.size() ? std::get<0>(header_row_[idx]) : ColumnType::UNDEF;
+    return idx < header_row_.size() ? std::get<0>(header_row_[idx]) : ColumnType::ANY;
   }
 
   const std::string & getColumnName(int column_index) const {
@@ -226,7 +226,7 @@ public:
 
   ColumnType getColumnType(int column_index) const override {
     auto idx = static_cast<size_t>(column_index);
-    return idx < header_row_.size() ? std::get<0>(header_row_[idx]) : ColumnType::UNDEF;
+    return idx < header_row_.size() ? std::get<0>(header_row_[idx]) : ColumnType::ANY;
   }
     
   const std::string & getColumnName(int column_index) override {

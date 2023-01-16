@@ -21,7 +21,7 @@ namespace sqldb {
     const std::string & getColumnName(int column_index) const override;
 
     ColumnType getColumnType(int column_index) const override {
-      return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::UNDEF;
+      return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::ANY;
     }
 
     void append(Table & other) override {
