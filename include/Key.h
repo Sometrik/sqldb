@@ -48,6 +48,10 @@ namespace sqldb {
       addComponent(value3);
       addComponent(value4);
     }
+    explicit Key(int value1, int value2) noexcept {
+      addComponent(value1);
+      addComponent(value2);
+    }
 
     bool operator < (const Key & other) const noexcept {
       for (size_t pos = 0; pos < components_.size() && pos < other.components_.size(); pos++) {
