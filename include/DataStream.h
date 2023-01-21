@@ -38,11 +38,7 @@ namespace sqldb {
 	auto s = getText(column_index);
 	long long ll;
 	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), ll);
-	if (ec != std::errc()) {
-	  return Key(ll);
-	} else {
-	  return Key(s);
-	}
+	return ec == std::errc() ? Key(ll) : Key(s);
       } else if (is_numeric(type)) {
 	return sqldb::Key(getLongLong(column_index));
       } else {
