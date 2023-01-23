@@ -3,7 +3,7 @@
 
 namespace sqldb {
   enum class ColumnType {
-    ANY,
+    ANY = 0,
     INT,
     INT64,
     CHAR,
