@@ -212,28 +212,6 @@ SQLite::~SQLite() {
   }
 }
 
-static int latin1_order(unsigned char c) {
-  if (c >= 'A' && c <= 'Z') return 1 + c - 'A';
-  else if (c >= 'a' && c <= 'z') return 1 + c - 'a';
-  else if (c == 0xc5 || c == 0xe5) return 27;
-  else if (c == 0xc4 || c == 0xe4) return 28;
-  else if (c == 0xd6 || c == 0xf6) return 29;
-  else return c;
-}
-
-static int latin1_compare(void * arg, int len1, const void * ptr1, int len2, const void * ptr2) {
-  const unsigned char * s1 = (const unsigned char *)ptr1;
-  const unsigned char * s2 = (const unsigned char *)ptr2;
-  for (int i = 0; i < len1 && i < len2; i++) {
-    int o1 = latin1_order(s1[i]), o2 = latin1_order(s2[i]);
-    if (o1 < o2) return -1;
-    else if (o1 > o2) return +1;
-  }
-  if (len1 < len2) return -1;
-  else if (len1 > len2) return +1;
-  else return 0;
-}
-
 bool
 SQLite::open() {
   int flags = 0;
@@ -252,16 +230,6 @@ SQLite::open() {
 
   if (db_) {
     sqlite3_busy_timeout(db_, 1000);
-    
-    r = sqlite3_create_collation( db_,
-				  "NOCASE", // "latin1",
-				  SQLITE_UTF8,
-				  0, // this,
-				  latin1_compare
-				  );
-    if (r) {
-      // error
-    }
   }
 
   return true;
