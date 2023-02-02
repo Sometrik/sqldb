@@ -3,9 +3,8 @@
 
 #include "ColumnType.h"
 
-#include <Key.h>
-
-#include <charconv>
+#include <vector>
+#include <string_view>
 
 namespace sqldb {  
   class DataStream {
@@ -31,63 +30,15 @@ namespace sqldb {
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::ANY;
     }
-
-    virtual sqldb::Key getKey(int column_index) {
-      auto type = getColumnType(column_index);
-      if (type == ColumnType::ANY) {
-	auto s = getText(column_index);
-	long long ll;
-	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), ll);
-	return ec == std::errc() ? Key(ll) : Key(s);
-      } else if (is_numeric(type)) {
-	return sqldb::Key(getLongLong(column_index));
-      } else {
-	return sqldb::Key(getText(column_index));
-      }
-    }
     
     virtual bool getBool(int column_index, bool default_value = false) {
       return getInt(column_index, default_value ? 1 : 0) ? true : false;
     }
 
-    virtual double getDouble(int column_index, double default_value = 0.0) {
-      auto s = getText(column_index);
-      if (!s.empty()) {
-	double d;
-	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), d);
-	if (ec == std::errc()) return d;
-      }
-      return default_value;
-    }
-    virtual float getFloat(int column_index, float default_value = 0.0f) {
-      auto s = getText(column_index);
-      if (!s.empty()) {
-	float f;
-	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), f);
-	if (ec == std::errc()) return f;	
-      }
-      return default_value;
-    }
-
-    virtual int getInt(int column_index, int default_value = 0) {
-      auto s = getText(column_index);
-      if (!s.empty()) {
-	int i;
-	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), i);
-	if (ec == std::errc()) return i;	
-      }
-      return default_value;
-    }
-
-    virtual long long getLongLong(int column_index, long long default_value = 0) {
-      auto s = getText(column_index);
-      if (!s.empty()) {
-	long long ll;
-	auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), ll);
-	if (ec == std::errc()) return ll;	
-      }
-      return default_value;  
-    }
+    virtual double getDouble(int column_index, double default_value = 0.0) = 0;
+    virtual float getFloat(int column_index, float default_value = 0.0f) = 0;
+    virtual int getInt(int column_index, int default_value = 0) = 0;
+    virtual long long getLongLong(int column_index, long long default_value = 0) = 0;
 
     virtual void set(int column_idx, std::string_view value, bool is_defined = true) = 0;
     virtual void set(int column_idx, int value, bool is_defined = true) = 0;
@@ -95,27 +46,12 @@ namespace sqldb {
     virtual void set(int column_idx, double value, bool is_defined = true) = 0;
     virtual void set(int column_idx, const void * data, size_t len, bool is_defined) = 0;
 
-    virtual void set(int column_idx, const sqldb::Key & key) {
-      if (key.empty()) {
-	set(column_idx, 0, false);
-      } else if (key.size() >= 2) {
-	set(column_idx, key.serializeToText());
-      } else if (sqldb::is_numeric(key.getType(0))) {
-	set(column_idx, key.getLongLong(0));
-      } else {
-	set(column_idx, key.getText(0));
-      }
-    }
-
     virtual void set(int column_idx, float value, bool is_defined = true) {
       set(column_idx, static_cast<double>(value), is_defined);
     }
 
     virtual long long getLastInsertId() const = 0;
 
-    void bind(const Key & value) {
-      set(getNextBindIndex(), value);
-    }
     void bind(int value, bool is_defined = true) {
       set(getNextBindIndex(), value, is_defined);
     }
