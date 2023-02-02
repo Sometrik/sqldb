@@ -71,6 +71,14 @@ public:
     }
   }
   
+  float getFloat(int row_index, int column_index, float default_value) const {
+    if (!isNull(row_index, column_index)) {
+      return DBFReadDoubleAttribute(h_, row_index, column_index);
+    } else {
+      return default_value;
+    }
+  }
+
   bool isNull(int row_index, int column_index) const {
     return row_index < 0 || row_index >= record_count_ || DBFIsAttributeNULL(h_, row_index, column_index);
   }
