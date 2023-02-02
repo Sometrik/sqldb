@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <cassert>
 #include <mutex>
+#include <charconv>
 
 using namespace std;
 using namespace sqldb;
@@ -250,6 +251,46 @@ public:
     std::lock_guard<std::mutex> guard(storage_->mutex_);
 
     return storage_->auto_increment_;
+  }
+
+  double getDouble(int column_index, double default_value = 0.0) override {
+    auto s = getText(column_index);
+    if (!s.empty()) {
+      double d;
+      auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), d);
+      if (ec == std::errc()) return d;
+    }
+    return default_value;
+  }
+
+  float getFloat(int column_index, float default_value = 0.0f) override {
+    auto s = getText(column_index);
+    if (!s.empty()) {
+      float f;
+      auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), f);
+      if (ec == std::errc()) return f;	
+    }
+    return default_value;
+  }
+
+  int getInt(int column_index, int default_value = 0) override {
+    auto s = getText(column_index);
+    if (!s.empty()) {
+      int i;
+      auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), i);
+      if (ec == std::errc()) return i;	
+    }
+    return default_value;
+  }
+
+  long long getLongLong(int column_index, long long default_value = 0) override {
+    auto s = getText(column_index);
+    if (!s.empty()) {
+      long long ll;
+      auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), ll);
+      if (ec == std::errc()) return ll;	
+    }
+    return default_value;  
   }
 
 private:
