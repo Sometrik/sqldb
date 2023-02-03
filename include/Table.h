@@ -3,6 +3,7 @@
 
 #include "ColumnType.h"
 #include "Cursor.h"
+#include "Log.h"
 
 #include <unordered_set>
 #include <memory>
@@ -11,13 +12,12 @@
 #include <string>
 #include <numeric>
 
-namespace sqldb {
-  class Cursor;
-  
+namespace sqldb {  
   class Table {
   public:
-    Table() { }
-    Table(std::vector<ColumnType> key_type) : key_type_(std::move(key_type)) { }
+    Table() : log_(std::make_shared<Log>()) { }
+    Table(std::vector<ColumnType> key_type)
+      : key_type_(std::move(key_type)), log_(std::make_shared<Log>()) { }
     
     virtual ~Table() { }
     
@@ -138,12 +138,17 @@ namespace sqldb {
 
     void setFilter(int col) { filter_col_ = col; }
     int getFilter() const { return filter_col_; }
-    
+
+    const Log & getLog() const { return *log_; }
+    Log & getLog() { return *log_; }
+
   private:
     std::vector<ColumnType> key_type_;
     int sort_col_ = -1, sort_subcol_ = -1;
     bool desc_sort_ = false;
     int filter_col_ = -1;
+    
+    std::shared_ptr<Log> log_;
   };
 };
 
