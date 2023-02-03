@@ -2,6 +2,7 @@
 #define _SQLDB_DATASTREAM_H_
 
 #include "ColumnType.h"
+#include "Key.h"
 
 #include <vector>
 #include <string_view>
@@ -39,6 +40,7 @@ namespace sqldb {
     virtual float getFloat(int column_index, float default_value = 0.0f) = 0;
     virtual int getInt(int column_index, int default_value = 0) = 0;
     virtual long long getLongLong(int column_index, long long default_value = 0) = 0;
+    virtual Key getKey(int column_index) = 0;
 
     virtual void set(int column_idx, std::string_view value, bool is_defined = true) = 0;
     virtual void set(int column_idx, int value, bool is_defined = true) = 0;
@@ -48,6 +50,18 @@ namespace sqldb {
 
     virtual void set(int column_idx, float value, bool is_defined = true) {
       set(column_idx, static_cast<double>(value), is_defined);
+    }
+
+    virtual void set(int column_idx, const sqldb::Key & key) {
+      if (key.empty()) {
+	set(column_idx, 0, false);
+      } else if (key.size() >= 2) {
+	set(column_idx, key.serializeToText());
+      } else if (sqldb::is_numeric(key.getType(0))) {
+	set(column_idx, key.getLongLong(0));
+      } else {
+	set(column_idx, key.getText(0));
+      }
     }
 
     virtual long long getLastInsertId() const = 0;
@@ -70,6 +84,9 @@ namespace sqldb {
     void bind(const std::vector<uint8_t> & data, bool is_defined = true) {
       set(getNextBindIndex(), data.data(), data.size(), is_defined);
     }
+    void bind(const Key & value) {
+      set(getNextBindIndex(), value);
+    }
     void bind(bool value, bool is_defined = true) {
       bind(value ? 1 : 0, is_defined);
     }
@@ -78,8 +95,10 @@ namespace sqldb {
       next_bind_index_ = 0;
     }
 
-  private:
+  protected:
     int getNextBindIndex() { return next_bind_index_++; }
+
+  private:
 
     int next_bind_index_ = 0;
   };

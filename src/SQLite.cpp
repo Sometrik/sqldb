@@ -1,9 +1,10 @@
 #include "SQLite.h"
 
+#include "SQLException.h"
+
 #include <cassert>
 #include <vector>
-
-#include "SQLException.h"
+#include <charconv>
 
 using namespace sqldb;
 
@@ -134,6 +135,20 @@ public:
       for (int i = 0; i < len; i++) r.push_back(data[i]);
     }
     return r;
+  }
+  Key getKey(int column_index) override {
+    auto type = getColumnType(column_index);
+    if (type == ColumnType::ANY) {
+      // FIXME: get actual type
+      auto s = getText(column_index);
+      long long ll;
+      auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), ll);
+      return ec == std::errc() ? Key(ll) : Key(s);
+    } else if (is_numeric(type)) {
+      return Key(getLongLong(column_index));
+    } else {
+      return Key(getText(column_index));
+    }
   }
     
   bool isNull(int column_index) const override {

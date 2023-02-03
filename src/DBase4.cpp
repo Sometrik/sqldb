@@ -71,14 +71,6 @@ public:
     }
   }
   
-  float getFloat(int row_index, int column_index, float default_value) const {
-    if (!isNull(row_index, column_index)) {
-      return DBFReadDoubleAttribute(h_, row_index, column_index);
-    } else {
-      return default_value;
-    }
-  }
-
   bool isNull(int row_index, int column_index) const {
     return row_index < 0 || row_index >= record_count_ || DBFIsAttributeNULL(h_, row_index, column_index);
   }
@@ -175,6 +167,10 @@ public:
   double getDouble(int column_index, double default_value = 0.0) override {
     return dbf_->getDouble(current_row_, column_index, default_value);    
   }
+
+  float getFloat(int column_index, float default_value = 0.0) override {
+    return dbf_->getDouble(current_row_, column_index, default_value);    
+  }
   
   int getInt(int column_index, int default_value = 0) override {
     return dbf_->getInt(current_row_, column_index, default_value);
@@ -182,6 +178,14 @@ public:
 
   long long getLongLong(int column_index, long long default_value = 0) override {
     return dbf_->getInt(current_row_, column_index, default_value);
+  }
+
+  Key getKey(int column_index) override {
+    if (is_numeric(getColumnType(column_index))) {
+      return Key(getLongLong(column_index));
+    } else {
+      return Key(getText(column_index));
+    }
   }
 
   int getNumFields() const override { return dbf_->getNumFields(); }

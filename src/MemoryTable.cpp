@@ -293,6 +293,20 @@ public:
     return default_value;  
   }
 
+  Key getKey(int column_index) override {
+    auto type = getColumnType(column_index);
+    if (type == ColumnType::ANY) {
+      auto s = getText(column_index);
+      long long ll;
+      auto [ ptr, ec ] = std::from_chars(s.data(), s.data() + s.size(), ll);
+      return ec == std::errc() ? Key(ll) : Key(s);
+    } else if (is_numeric(type)) {
+      return Key(getLongLong(column_index));
+    } else {
+      return Key(getText(column_index));
+    }
+  }
+
 private:
   MemoryStorage* storage_;
   std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;

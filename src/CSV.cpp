@@ -270,6 +270,10 @@ public:
     return default_value;  
   }
 
+  Key getKey(int column_index) override {
+    return Key(getText(column_index));
+  }
+
   int getNumFields() const override { return csv_->getNumFields(); }
 
   vector<uint8_t> getBlob(int column_index) override {
