@@ -431,26 +431,6 @@ MemoryTable::isColumnUnique(int column_index) const {
 }
 
 void
-MemoryTable::append(Table & other) {
-  if (!getNumFields()) { // FIXME 
-    setKeyType(other.getKeyType());
-    for (int i = 0; i < other.getNumFields(); i++) {
-      addColumn(other.getColumnName(i), other.getColumnType(i), other.isColumnUnique(i));
-    }
-  }
-  
-  if (auto cursor = other.seekBegin()) {
-    do {
-      auto my_cursor = insert(cursor->getRowKey());
-      for (int i = 0; i < cursor->getNumFields(); i++) {
-	my_cursor->set(i, cursor->getText(i));
-      }
-      my_cursor->execute();
-    } while (cursor->next());
-  }
-}
-
-void
 MemoryTable::clear() {
   storage_->clear();
 }

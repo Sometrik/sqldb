@@ -33,8 +33,6 @@ namespace sqldb {
     const std::string & getColumnName(int column_index) const override;
     bool isColumnUnique(int column_index) const override;
     
-    void append(Table & other) override;
-
     void clear() override;
           
   private:

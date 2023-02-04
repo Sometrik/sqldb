@@ -24,10 +24,6 @@ namespace sqldb {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::ANY;
     }
 
-    void append(Table & other) override {
-      throw std::runtime_error("CSV is read-only");
-    }
-
     void clear() override {
       throw std::runtime_error("CSV is read-only");
     }

@@ -23,10 +23,6 @@ namespace sqldb {
     const std::string & getColumnName(int column_index) const override;
     ColumnType getColumnType(int column_index) const override;
     
-    void append(Table & other) override {
-      throw std::runtime_error("dBase4 is read-only");
-    }
-
     void clear() override {
       throw std::runtime_error("dBase4 is read-only");
     }

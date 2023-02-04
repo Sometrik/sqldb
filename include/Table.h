@@ -40,7 +40,6 @@ namespace sqldb {
     
     virtual std::unique_ptr<Table> copy() const = 0;
     virtual void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) = 0;
-    virtual void append(Table & other) = 0;
     virtual void clear() = 0;
 
     virtual int getNumFields() const = 0;
@@ -51,7 +50,66 @@ namespace sqldb {
     virtual void begin() { }
     virtual void commit() { }
     virtual void rollback() { }
-    
+
+    void append(Table & other) {
+      if (!getNumFields()) { // FIXME 
+	setKeyType(other.getKeyType());
+	for (int i = 0; i < other.getNumFields(); i++) {
+	  addColumn(other.getColumnName(i), other.getColumnType(i), other.isColumnUnique(i));
+	}
+      }
+      
+      if (auto cursor = other.seekBegin()) {
+	int n = 0;
+	do {
+	  if (n == 0) begin();
+	  auto my_cursor = insert(cursor->getRowKey());
+	  for (int i = 0; i < cursor->getNumFields(); i++) {
+	    bool is_null = cursor->isNull(i);
+	    switch (cursor->getColumnType(i)) {
+	    case sqldb::ColumnType::INT:
+	    case sqldb::ColumnType::BOOL:
+	    case sqldb::ColumnType::ENUM:
+	      my_cursor->bind(cursor->getInt(i), !is_null);
+	      break;
+	    case sqldb::ColumnType::INT64:
+	    case sqldb::ColumnType::DATETIME:
+	    case sqldb::ColumnType::DATE:
+	      my_cursor->bind(cursor->getLongLong(i), !is_null);
+	      break;
+	    case sqldb::ColumnType::DOUBLE:
+	      my_cursor->bind(cursor->getDouble(i), !is_null);
+	      break;
+	    case sqldb::ColumnType::FLOAT:
+	      my_cursor->bind(cursor->getFloat(i), !is_null);
+	      break;	    
+	    case sqldb::ColumnType::ANY:
+	    case sqldb::ColumnType::TEXT:
+	    case sqldb::ColumnType::URL:
+	    case sqldb::ColumnType::TEXT_KEY:
+	    case sqldb::ColumnType::BINARY_KEY:
+	    case sqldb::ColumnType::CHAR:
+	    case sqldb::ColumnType::VARCHAR:
+	      my_cursor->bind(cursor->getText(i), !is_null);
+	      break;
+	      
+	    case sqldb::ColumnType::BLOB:
+	      my_cursor->bind("", false); // not implemented
+	      break;
+	    }
+	  }
+	  my_cursor->execute();
+	  if (++n == 4096) {	  
+	    commit();
+	    n = 0;
+	  }
+	} while (cursor->next());
+	if (n) commit();
+
+	getLog().append(other.getLog());
+      }
+    }
+
     int getColumnByNames(std::unordered_set<std::string> names) const {
       if (getNumFields()) {
 	for (int i = getNumFields() - 1; i >= 0; i--) {

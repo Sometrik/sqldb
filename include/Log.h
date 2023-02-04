@@ -33,6 +33,23 @@ namespace sqldb {
       }
       return std::pair<Event, sqldb::Key>();      
     }
+
+    void append(const Log & other) {
+      auto other_data = other.getData();
+      
+      std::lock_guard<std::mutex> guard(mutex_);
+      data_.insert(data_.end(), other_data.begin(), other_data.end());
+    }
+
+  protected:
+    std::vector<std::pair<Event, sqldb::Key>> getData() const {
+      std::vector<std::pair<Event, sqldb::Key>> r;
+      {
+	std::lock_guard<std::mutex> guard(mutex_);
+	r = data_;
+      }
+      return r;
+    }
     
   private:
     std::vector<std::pair<Event, sqldb::Key>> data_;
