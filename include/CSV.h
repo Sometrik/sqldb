@@ -57,6 +57,7 @@ namespace sqldb {
     std::unique_ptr<Cursor> seek(int row) override;
     
   private:
+    // csv_ is shared with cursors
     std::shared_ptr<CSVFile> csv_;    
   };
 };

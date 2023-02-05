@@ -58,6 +58,7 @@ namespace sqldb {
     void setPrimaryKeyMapping(std::unordered_map<sqldb::Key, int> m) { primary_key_mapping_ = std::move(m); }
 
   private:    
+    // dbf_ is shared with cursors
     std::shared_ptr<DBase4File> dbf_;
     std::unordered_map<sqldb::Key, int> primary_key_mapping_;
   };
