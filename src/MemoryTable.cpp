@@ -22,17 +22,8 @@ public:
 
   std::unique_ptr<Cursor> seek(const Key & key);
   std::unique_ptr<Cursor> seekBegin();
-  std::unique_ptr<Cursor> insertOrUpdate(const Key & key);
-  
-  std::unique_ptr<Cursor> insertOrUpdate() {
-    Key key;
-    {
-      std::lock_guard<std::mutex> guard(mutex_);
-      key.addComponent(++auto_increment_);
-    }
-    return insertOrUpdate(key);
-  }
-
+  std::unique_ptr<MemoryTableCursor> insertOrUpdate(const Key & key);
+  std::unique_ptr<MemoryTableCursor> insertOrUpdate();
   std::unique_ptr<Cursor> increment(const Key & key);
   std::unique_ptr<Cursor> assign(std::vector<int> columns);
 
@@ -248,10 +239,10 @@ public:
   }
 
   long long getLastInsertId() const override {
-    std::lock_guard<std::mutex> guard(storage_->mutex_);
-
-    return storage_->auto_increment_;
+    return last_insert_id_;
   }
+
+  void setLastInsertId(long long id) { last_insert_id_ = id; }
 
   double getDouble(int column_index, double default_value = 0.0) override {
     auto s = getText(column_index);
@@ -315,6 +306,7 @@ private:
   std::unordered_map<int, std::string> pending_row_;
   std::vector<int> selected_columns_;
   bool is_increment_op_;
+  long long last_insert_id_ = 0;
 
   static inline std::string null_string;
 };
@@ -341,10 +333,22 @@ MemoryStorage::seekBegin() {
   }
 }
 
-std::unique_ptr<Cursor>
+std::unique_ptr<MemoryTableCursor>
 MemoryStorage::insertOrUpdate(const Key & key) {
   assert(!key.empty());
   return std::make_unique<MemoryTableCursor>(this, key);
+}
+
+std::unique_ptr<MemoryTableCursor>
+MemoryStorage::insertOrUpdate() {
+  long long id = 0;
+  {
+    std::lock_guard<std::mutex> guard(mutex_);
+    id = ++auto_increment_;
+  }
+  auto cursor = insertOrUpdate(sqldb::Key(id));
+  cursor->setLastInsertId(id);
+  return cursor;
 }
   
 std::unique_ptr<Cursor>
