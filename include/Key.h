@@ -28,6 +28,9 @@ namespace sqldb {
     explicit Key(std::string_view value) noexcept {
       addComponent(std::string(value));
     }
+    explicit Key(const char * value) noexcept {
+      addComponent(std::string(value));
+    }
     explicit Key(int value1, const Key & value2) noexcept {
       addComponent(value1);
       addComponent(value2);
