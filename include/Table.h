@@ -198,17 +198,17 @@ namespace sqldb {
     bool isDescSort() const { return desc_sort_; }
 
     bool hasFilter(int col) const {
-      return filters_.count(col) != 0;
+      return filter_.count(col) != 0;
     }
 
     void clearFilter(int col) {
-      filters_.erase(col);
+      filter_.erase(col);
     }
     void setFilter(int col, robin_hood::unordered_flat_set<sqldb::Key> keys) {
-      filters_.emplace(col, std::move(keys));
+      filter_.emplace(col, std::move(keys));
     }
     
-    const std::unordered_map<int, robin_hood::unordered_flat_set<sqldb::Key>> & getFilters() const { return filters_; }
+    const std::unordered_map<int, robin_hood::unordered_flat_set<sqldb::Key>> & getFilter() const { return filter_; }
     
     const Log & getLog() const { return *log_; }
     Log & getLog() { return *log_; }
@@ -218,7 +218,7 @@ namespace sqldb {
     int sort_col_ = -1, sort_subcol_ = -1;
     bool desc_sort_ = false;
 
-    std::unordered_map<int, robin_hood::unordered_flat_set<sqldb::Key> > filters_;
+    std::unordered_map<int, robin_hood::unordered_flat_set<sqldb::Key> > filter_;
     
     std::shared_ptr<Log> log_;
   };
