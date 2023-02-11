@@ -5,12 +5,15 @@
 #include "Cursor.h"
 #include "Log.h"
 
+#include <unordered_map>
 #include <unordered_set>
 #include <memory>
 #include <vector>
 #include <string_view>
 #include <string>
 #include <numeric>
+
+#include "robin_hood.h"
 
 namespace sqldb {  
   class Table {
@@ -194,9 +197,19 @@ namespace sqldb {
     int getSortSubcol() const { return sort_subcol_; }
     bool isDescSort() const { return desc_sort_; }
 
-    void setFilter(int col) { filter_col_ = col; }
-    int getFilter() const { return filter_col_; }
+    bool hasFilter(int col) const {
+      return filters_.count(col) != 0;
+    }
 
+    void clearFilter(int col) {
+      filters_.erase(col);
+    }
+    void setFilter(int col, robin_hood::unordered_flat_set<sqldb::Key> keys) {
+      filters_.emplace(col, std::move(keys));
+    }
+    
+    const std::unordered_map<int, robin_hood::unordered_flat_set<sqldb::Key>> & getFilters() const { return filters_; }
+    
     const Log & getLog() const { return *log_; }
     Log & getLog() { return *log_; }
 
@@ -204,7 +217,8 @@ namespace sqldb {
     std::vector<ColumnType> key_type_;
     int sort_col_ = -1, sort_subcol_ = -1;
     bool desc_sort_ = false;
-    int filter_col_ = -1;
+
+    std::unordered_map<int, robin_hood::unordered_flat_set<sqldb::Key> > filters_;
     
     std::shared_ptr<Log> log_;
   };
