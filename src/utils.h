@@ -1,6 +1,8 @@
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
+#include <utf8proc.h>
+
 static inline std::string normalize_nfc(std::string_view input) {
   if (!input.empty()) {
     utf8proc_uint8_t * dest = nullptr;

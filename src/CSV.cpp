@@ -2,7 +2,6 @@
 
 #include <Cursor.h>
 
-#include <utf8proc.h>
 #include <vector>
 #include <cassert>
 #include <charconv>
