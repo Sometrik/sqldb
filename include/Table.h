@@ -95,8 +95,9 @@ namespace sqldb {
 	    case sqldb::ColumnType::VARCHAR:
 	      my_cursor->bind(cursor->getText(i), !is_null);
 	      break;
-	      
+
 	    case sqldb::ColumnType::BLOB:
+	    case sqldb::ColumnType::VECTOR:
 	      my_cursor->bind("", false); // not implemented
 	      break;
 	    }

@@ -18,7 +18,8 @@ namespace sqldb {
     TEXT_KEY,
     BINARY_KEY,
     ENUM,
-    BLOB
+    BLOB,
+    VECTOR
   };
 
   static inline bool is_numeric(ColumnType type) {
@@ -30,6 +31,7 @@ namespace sqldb {
     case ColumnType::DATE:
     case ColumnType::FLOAT:
     case ColumnType::DOUBLE:
+    case ColumnType::VECTOR:
       return true;
     case ColumnType::ANY:
     case ColumnType::CHAR:

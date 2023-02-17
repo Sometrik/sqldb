@@ -28,6 +28,10 @@ namespace sqldb {
     virtual bool next() = 0;
     virtual const std::string & getColumnName(int column_index) = 0;
 
+    virtual std::vector<float> getVector(int column_index) {
+      return std::vector<float>();
+    }
+
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::ANY;
     }
