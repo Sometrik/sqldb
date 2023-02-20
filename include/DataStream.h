@@ -28,9 +28,7 @@ namespace sqldb {
     virtual bool next() = 0;
     virtual const std::string & getColumnName(int column_index) = 0;
 
-    virtual std::vector<float> getVector(int column_index) {
-      return std::vector<float>();
-    }
+    virtual const std::vector<float> & getVector(int column_index) { return null_vector; }
 
     virtual ColumnType getColumnType(int column_index) const {
       return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::ANY;
@@ -103,8 +101,9 @@ namespace sqldb {
     int getNextBindIndex() { return next_bind_index_++; }
 
   private:
-
     int next_bind_index_ = 0;
+
+    static inline std::vector<float> null_vector;
   };
 };
 
