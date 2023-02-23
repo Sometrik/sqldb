@@ -33,7 +33,9 @@ namespace sqldb {
     }
     explicit Key(int value1, const Key & value2) noexcept {
       addComponent(value1);
-      addComponent(value2);
+      for (size_t i = 0; i < value2.size(); i++) {
+	addComponent(value2, i);
+      }
     }
     explicit Key(std::string value1, std::string value2) noexcept {
       addComponent(std::move(value1));
@@ -91,11 +93,11 @@ namespace sqldb {
       components_.push_back(std::string(value));
     }
 
-    void addComponent(const Key & other) noexcept {
-      if (other.getType(0) == ColumnType::INT64) {
-	addComponent(other.getLongLong(0));
+    void addComponent(const Key & other, size_t idx = 0) noexcept {
+      if (other.getType(idx) == ColumnType::INT64) {
+	addComponent(other.getLongLong(idx));
       } else {
-	addComponent(other.getText(0));
+	addComponent(other.getText(idx));
       }
     }
 
@@ -138,9 +140,21 @@ namespace sqldb {
       return "";
     }
 
-    Key getKey(size_t idx) const noexcept {
+    Key getSubKey(size_t from) const noexcept {
       Key key;
-      if (idx < components_.size()) {
+      for (size_t idx = from; idx < size(); idx++) {
+	if (std::holds_alternative<std::string>(components_[idx])) {
+	  key.addComponent(std::get<std::string>(components_[idx]));
+	} else {
+	  key.addComponent(std::get<long long>(components_[idx]));
+	}
+      }
+      return key;
+    }
+
+    Key getSubKey(size_t from, size_t n) const noexcept {
+      Key key;
+      for (size_t idx = from; idx < size() && idx < from + n; idx++) {
 	if (std::holds_alternative<std::string>(components_[idx])) {
 	  key.addComponent(std::get<std::string>(components_[idx]));
 	} else {
