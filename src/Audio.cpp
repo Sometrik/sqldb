@@ -113,8 +113,8 @@ private:
 
 class AudioCursor : public Cursor {
 public:
-  AudioCursor(const std::shared_ptr<sqldb::AudioFile> & audio, long long from, long long to)
-    : audio_(audio), from_(from), to_(to) {
+  AudioCursor(const std::shared_ptr<sqldb::AudioFile> & audio, long long track, long long from, long long to)
+    : audio_(audio), track_(track), from_(from), to_(to) {
 
   }
   
@@ -154,7 +154,7 @@ public:
   }
 
   const std::vector<float> & getVector(int column_index) override {
-    if (column_index == 1) {
+    if (track_ == 0 && column_index == 1) {
       if (!has_data_) {
 	has_data_ = true;
 	data_ = audio_->read(from_, to_ - from_);
@@ -165,10 +165,11 @@ public:
     }
   }
 
-  bool isNull(int column_index) const override { return !(column_index >= 0 && column_index < getNumFields()); }
+  bool isNull(int column_index) const override { return track_ != 0 || !(column_index >= 0 && column_index < getNumFields()); }
   
   Key getRowKey() const override {
     Key key;
+    key.addComponent(track_);
     key.addComponent(from_);
     key.addComponent(to_);
     return key;
@@ -208,7 +209,7 @@ public:
 
 private:
   std::shared_ptr<AudioFile> audio_;
-  long long from_, to_;
+  long long track_, from_, to_;
   bool has_data_ = false;
   std::vector<float> data_;
 };
@@ -241,16 +242,16 @@ Audio::getColumnType(int column_index) const {
 
 std::unique_ptr<Cursor>
 Audio::seekBegin() {
-  return seek(0, audio_->getNumFrames());
+  return seek(0, 0, audio_->getNumFrames());
 }
 
 unique_ptr<Cursor>
 Audio::seek(const Key & key) {
-  assert(key.size() == 2);
-  return seek(key.getLongLong(0), key.getLongLong(1));
+  assert(key.size() == 3);
+  return seek(key.getLongLong(0), key.getLongLong(1), key.getLongLong(2));
 }
 
 unique_ptr<Cursor>
-Audio::seek(long long from, long long to) {
-  return make_unique<AudioCursor>(audio_, from, to);
+Audio::seek(long long track, long long from, long long to) {
+  return make_unique<AudioCursor>(audio_, track, from, to);
 }

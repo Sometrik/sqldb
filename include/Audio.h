@@ -51,7 +51,7 @@ namespace sqldb {
 
     std::unique_ptr<Cursor> seekBegin() override;
     std::unique_ptr<Cursor> seek(const Key & key) override;
-    std::unique_ptr<Cursor> seek(long long from, long long to);
+    std::unique_ptr<Cursor> seek(long long track, long long from, long long to);
     
   private:
     // audio_ is shared with cursors
