@@ -94,7 +94,7 @@ namespace sqldb {
     }
 
     void addComponent(const Key & other, size_t idx = 0) noexcept {
-      if (other.getType(idx) == ColumnType::INT64) {
+      if (is_numeric(other.getType(idx))) {
 	addComponent(other.getLongLong(idx));
       } else {
 	addComponent(other.getText(idx));
@@ -128,16 +128,13 @@ namespace sqldb {
       return 0LL;
     }
 
-    // return by value, since Key is temporary when returned from Cursor
-    std::string getText(size_t idx) const noexcept {
+    const std::string & getText(size_t idx) const noexcept {
       if (idx < components_.size()) {
 	if (std::holds_alternative<std::string>(components_[idx])) {
 	  return std::get<std::string>(components_[idx]);
-	} else {
-	  return std::to_string(std::get<long long>(components_[idx]));
 	}
       }
-      return "";
+      return empty_string;
     }
 
     Key getSubKey(size_t from) const noexcept {
@@ -182,23 +179,29 @@ namespace sqldb {
       std::string s;
       for (size_t i = 0; i < components_.size(); i++) {
 	if (i != 0) s += "|";
-	s += getText(i);
+	if (is_numeric(getType(i))) {
+	  s += std::to_string(getLongLong(i));
+	} else {
+	  s += getText(i);
+	}
       }
       return s;
     }
 
   private:    
     std::vector<std::variant<long long, std::string>> components_;
+
+    static inline std::string empty_string;
   };
 
   static inline std::string to_string(const Key & key) noexcept {
     std::string s;
     for (size_t i = 0; i < key.size(); i++) {
       if (!s.empty()) s += "|";
-      if (key.getType(i) == ColumnType::VARCHAR) {
-	s += "s=" + key.getText(i);
+      if (is_numeric(key.getType(i))) {
+	s += std::to_string(key.getLongLong(i));
       } else {
-	s += "i=" + std::to_string(key.getLongLong(i));
+	s += key.getText(i);
       }
     }
     return s;

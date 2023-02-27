@@ -73,7 +73,7 @@ public:
     return row_index < 0 || row_index >= record_count_ || DBFIsAttributeNULL(h_, row_index, column_index);
   }
 
-  Key getRowKey(int row) {
+  Key getRowKey(int row) const {
     Key key;
     if (row >= 0) {
       if (primary_key_ == -1) key.addComponent(row);
@@ -81,7 +81,7 @@ public:
     }
     return key;
   }
-  
+
   int getRecordCount() { return record_count_; }
   int getNumFields() const { return static_cast<int>(column_types_.size()); }
   
@@ -94,7 +94,7 @@ public:
     auto idx = static_cast<size_t>(column_index);
     return idx < column_types_.size() ? column_types_[idx] : ColumnType::ANY;
   }
-  
+
 private:
   void initialize() {
     record_count_ = DBFGetRecordCount(h_);
@@ -140,12 +140,14 @@ private:
 class DBase4Cursor : public Cursor {
 public:
   DBase4Cursor(std::shared_ptr<sqldb::DBase4File> dbf, int row) : dbf_(std::move(dbf)), current_row_(row) {
+    updateRowKey();
   }
   
   bool next() override {
     if (current_row_ + 1 < dbf_->getRecordCount()) {
       current_row_++;
       text_cache_.clear();
+      updateRowKey();
       return true;
     } else {
       return false;
@@ -203,10 +205,6 @@ public:
     return dbf_->getColumnName(column_index);
   }
 
-  Key getRowKey() const override {
-    return dbf_->getRowKey(current_row_);
-  }
-
   void set(int column_idx, std::string_view value, bool is_defined = true) override {
     throw std::runtime_error("dBase4 file is read-only");
   }
@@ -231,6 +229,11 @@ public:
 
   long long getLastInsertId() const override { return 0; }
 
+protected:
+  void updateRowKey() {
+    setRowKey(dbf_->getRowKey(current_row_));
+  }
+
 private:
   std::shared_ptr<DBase4File> dbf_;
   int current_row_;
@@ -238,7 +241,13 @@ private:
 };
 
 DBase4::DBase4(std::string filename, int primary_key)
-  : dbf_(make_shared<DBase4File>(move(filename), primary_key)) { }
+  : dbf_(make_shared<DBase4File>(move(filename), primary_key))
+{
+  std::vector<ColumnType> key_type;
+  if (primary_key == -1) key_type.push_back(ColumnType::INT);
+  else key_type.push_back(ColumnType::VARCHAR); // FIXME: get the actual type
+  setKeyType(std::move(key_type));
+}
 
 DBase4::DBase4(const DBase4 & other)
   : Table(other),

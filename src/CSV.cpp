@@ -221,9 +221,17 @@ class CSVCursor : public Cursor {
 public:
   CSVCursor(const std::shared_ptr<sqldb::CSVFile> & csv, int row) : csv_(csv) {
     csv_->seek(row);
+    updateRowKey();
   }
   
-  bool next() override { return csv_->next(); }
+  bool next() override {
+    if (csv_->next()) {
+      updateRowKey();
+      return true;
+    } else {
+      return false;
+    }
+  }
   
   std::string_view getText(int column_index) override {
     return csv_->getText(column_index);
@@ -290,12 +298,6 @@ public:
     return csv_->getColumnName(column_index);
   }
   
-  Key getRowKey() const override {
-    Key key;
-    if (csv_->getNextRowIdx() >= 1) key.addComponent(csv_->getNextRowIdx() - 1);
-    return key;
-  }
-
   void set(int column_idx, std::string_view value, bool is_defined = true) override {
     throw std::runtime_error("CSV is read-only");
   }
@@ -320,12 +322,22 @@ public:
 
   long long getLastInsertId() const override { return 0; }
 
+protected:
+  void updateRowKey() {
+    Key key;
+    if (csv_->getNextRowIdx() >= 1) key.addComponent(csv_->getNextRowIdx() - 1);
+    setRowKey(std::move(key));
+  }
+
 private:
   std::shared_ptr<CSVFile> csv_;
 };
 
 CSV::CSV(std::string csv_file, bool has_records)
-  : csv_(make_shared<CSVFile>(move(csv_file), has_records)) { }
+  : csv_(make_shared<CSVFile>(move(csv_file), has_records)) {
+  std::vector<ColumnType> key_type = { ColumnType::INT };
+  setKeyType(std::move(key_type));
+}
 
 CSV::CSV(const CSV & other)
   : Table(other),

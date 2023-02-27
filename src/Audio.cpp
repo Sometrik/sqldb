@@ -115,7 +115,7 @@ class AudioCursor : public Cursor {
 public:
   AudioCursor(const std::shared_ptr<sqldb::AudioFile> & audio, long long track, long long from, long long to)
     : audio_(audio), track_(track), from_(from), to_(to) {
-
+    updateRowKey();
   }
   
   bool next() override {
@@ -167,14 +167,6 @@ public:
 
   bool isNull(int column_index) const override { return track_ != 0 || !(column_index >= 0 && column_index < getNumFields()); }
   
-  Key getRowKey() const override {
-    Key key;
-    key.addComponent(track_);
-    key.addComponent(from_);
-    key.addComponent(to_);
-    return key;
-  }
-
   void set(int column_idx, std::string_view value, bool is_defined = true) override {
     throw std::runtime_error("Audio is read-only");
   }
@@ -207,6 +199,15 @@ public:
     return audio_->getColumnType(column_index);
   }
 
+protected:
+  void updateRowKey() {
+    Key key;
+    key.addComponent(track_);
+    key.addComponent(from_);
+    key.addComponent(to_);
+    setRowKey(std::move(key));
+  }
+
 private:
   std::shared_ptr<AudioFile> audio_;
   long long track_, from_, to_;
@@ -215,7 +216,12 @@ private:
 };
 
 Audio::Audio(std::string filename)
-  : audio_(make_shared<AudioFile>(move(filename))) { }
+  : audio_(make_shared<AudioFile>(move(filename))) {
+
+  std::vector<ColumnType> key_type = { ColumnType::INT64, ColumnType::INT64, ColumnType::INT64 };
+  setKeyType(std::move(key_type));
+  setHasHumanReadableKey(true);
+}
 
 Audio::Audio(const Audio & other)
   : Table(other),

@@ -10,8 +10,15 @@ namespace sqldb {
   public:
     Cursor() { }
 
-    virtual Key getRowKey() const = 0;
     virtual size_t update(const Key & key) = 0;
+
+    const Key & getRowKey() const { return row_key_; }
+
+  protected:
+    void setRowKey(sqldb::Key key) { row_key_ = std::move(key); }
+		   
+  private:
+    sqldb::Key row_key_;
   };
 };
 

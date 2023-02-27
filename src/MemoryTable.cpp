@@ -84,7 +84,9 @@ public:
   MemoryTableCursor(MemoryStorage * storage,
 		    std::map<Key, std::vector<std::string> >::iterator it,
 		    bool is_increment_op = false)
-    : storage_(storage), header_row_(storage->header_row_), it_(it), is_increment_op_(is_increment_op) { }
+    : storage_(storage), header_row_(storage->header_row_), it_(it), is_increment_op_(is_increment_op) {
+    updateRowKey();
+  }
   MemoryTableCursor(MemoryStorage * storage,
 		    Key pending_key,
 		    bool is_increment_op = false)
@@ -168,19 +170,12 @@ public:
     std::lock_guard<std::mutex> guard(storage_->mutex_);
 
     auto & data = storage_->data_;
-    if (it_ != data.end()) {
-      return ++it_ != data.end();
+    if (it_ != data.end() && ++it_ != data.end()) {
+      updateRowKey();
+      return true;
     } else {
       return false;
     }
-  }
-
-  Key getRowKey() const override {
-    std::lock_guard<std::mutex> guard(storage_->mutex_);
-    
-    auto & data = storage_->data_;
-    if (it_ != data.end()) return Key(it_->first);
-    else return Key();
   }
 
   std::string_view getText(int column_index) override {
@@ -296,6 +291,11 @@ public:
     } else {
       return Key(getText(column_index));
     }
+  }
+
+protected:
+  void updateRowKey() {
+    setRowKey(Key(it_->first));
   }
 
 private:
