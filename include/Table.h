@@ -183,6 +183,9 @@ namespace sqldb {
     bool hasNumericKey() const {
       return key_type_.size() == 1 && is_numeric(key_type_.front());
     }
+
+    void setHasHumanReadableKey(bool t) { has_human_readable_key_ = t; }
+    bool hasHumanReadableKey() const { return has_human_readable_key_; }
     
     const std::vector<ColumnType> & getKeyType() const { return key_type_; }
     void setKeyType(std::vector<ColumnType> key_type) { key_type_ = std::move(key_type); }
@@ -213,9 +216,10 @@ namespace sqldb {
     
     const Log & getLog() const { return *log_; }
     Log & getLog() { return *log_; }
-
+    
   private:
     std::vector<ColumnType> key_type_;
+    bool has_human_readable_key_ = false;
     int sort_col_ = -1, sort_subcol_ = -1;
     bool desc_sort_ = false;
 
