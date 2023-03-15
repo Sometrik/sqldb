@@ -10,7 +10,7 @@
 #include "robin_hood.h"
 
 namespace sqldb {
-  static size_t hash_combine(size_t seed, size_t v) noexcept {
+  static inline size_t hash_combine(size_t seed, size_t v) noexcept {
     // see https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine
     seed ^= v + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     return seed;
@@ -61,6 +61,7 @@ namespace sqldb {
     bool operator < (const Key & other) const noexcept {
       for (size_t pos = 0; pos < components_.size() && pos < other.components_.size(); pos++) {
 	if (components_[pos] < other.components_[pos]) return true;
+	else if (components_[pos] > other.components_[pos]) return false;
       }
       if (components_.size() < other.components_.size()) return true;
       else return false;      
@@ -76,6 +77,11 @@ namespace sqldb {
     void clear() noexcept { components_.clear(); }
     bool empty() const noexcept { return components_.empty(); }
     size_t size() const noexcept { return components_.size(); }
+    void resize(size_t s) { components_.resize(s); }
+
+    // remove the first component
+    void shift() { components_.erase(components_.begin()); }
+    void unshift(long long value) { components_.insert(components_.begin(), value); }
 
     void addComponent(int value) noexcept {
       components_.push_back(value);
@@ -98,6 +104,15 @@ namespace sqldb {
 	addComponent(other.getLongLong(idx));
       } else {
 	addComponent(other.getText(idx));
+      }
+    }
+
+    void setComponent(size_t idx, long long value) { components_[idx] = value; }
+    void setComponent(size_t idx, std::string_view value) { components_[idx] = std::string(value); }
+
+    void assignComponents(size_t pos, const Key & other) {
+      for (size_t i = 0; i < other.size(); i++) {
+	components_[pos + i] = other.components_[i];
       }
     }
 
@@ -161,7 +176,7 @@ namespace sqldb {
       return key;
     }
 
-    size_t getHash() const noexcept {
+    inline size_t getHash() const noexcept {
       size_t seed = 0;
       for (auto & c : components_) {
 	if (std::holds_alternative<long long>(c)) {
