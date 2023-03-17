@@ -82,6 +82,7 @@ namespace sqldb {
     // remove the first component
     void shift() { components_.erase(components_.begin()); }
     void unshift(long long value) { components_.insert(components_.begin(), value); }
+    void pop_back() { components_.pop_back(); }
 
     void addComponent(int value) noexcept {
       components_.push_back(value);
