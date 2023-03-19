@@ -13,6 +13,12 @@ namespace sqldb {
     
     Log() { }
 
+    // Table log must be shared between copies
+    Log(const Log & other) = delete;
+    Log(Log && other) = delete;
+    Log & operator=(const Log & other) = delete;
+    Log & operator=(Log && other) = delete;
+
     void add(sqldb::Key key) {
       std::lock_guard<std::mutex> guard(mutex_);
       data_.emplace_back(Event::ADD, std::move(key));
