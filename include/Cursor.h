@@ -3,8 +3,6 @@
 
 #include "DataStream.h"
 
-#include <charconv>
-
 namespace sqldb {
   class Cursor : public DataStream {
   public:
@@ -17,7 +15,6 @@ namespace sqldb {
   protected:
     void setRowKey(sqldb::Key key) { row_key_ = std::move(key); }
 		   
-  private:
     sqldb::Key row_key_;
   };
 };
