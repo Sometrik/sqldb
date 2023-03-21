@@ -69,6 +69,8 @@ public:
     data_.clear();    
   }
 
+  size_t size() const { return data_.size(); }
+
 private:
   // use ordered map for iterator stability
   std::map<Key, std::vector<std::string> > data_;
@@ -295,7 +297,7 @@ public:
 
 protected:
   void updateRowKey() {
-    setRowKey(Key(it_->first));
+    setRowKey(it_->first);
   }
 
 private:
@@ -380,7 +382,7 @@ MemoryTable::insert(const Key & key) {
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::insert() {
+MemoryTable::insert(int sheet) {
   return storage_->insertOrUpdate();
 }
 
@@ -400,7 +402,7 @@ MemoryTable::remove(const Key & key) {
 }
 
 std::unique_ptr<Cursor>
-MemoryTable::seekBegin() {
+MemoryTable::seekBegin(int sheet) {
   return storage_->seekBegin(); 
 }
 
@@ -410,27 +412,22 @@ MemoryTable::seek(const Key & key) {
 }
 
 int
-MemoryTable::getNumFields() const {
+MemoryTable::getNumFields(int sheet) const {
   return storage_->getNumFields();
 }
 
-int
-MemoryTable::getNumRows() const {
-  return storage_->getNumRows();
-}
-
 ColumnType
-MemoryTable::getColumnType(int column_index) const {
+MemoryTable::getColumnType(int column_index, int sheet) const {
   return storage_->getColumnType(column_index);
 }
 
 const std::string &
-MemoryTable::getColumnName(int column_index) const {
+MemoryTable::getColumnName(int column_index, int sheet) const {
   return storage_->getColumnName(column_index);
 }
 
 bool
-MemoryTable::isColumnUnique(int column_index) const {
+MemoryTable::isColumnUnique(int column_index, int sheet) const {
   return storage_->isColumnUnique(column_index);
 }
 

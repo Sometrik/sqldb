@@ -24,12 +24,12 @@ namespace sqldb {
     
     virtual ~Table() { }
     
-    virtual std::unique_ptr<Cursor> seekBegin() = 0;
+    virtual std::unique_ptr<Cursor> seekBegin(int sheet = 0) = 0;
     virtual std::unique_ptr<Cursor> seek(const Key & key) = 0;
-    virtual std::unique_ptr<Cursor> seek(int row) { return std::unique_ptr<Cursor>(nullptr); }
+    virtual std::unique_ptr<Cursor> seek(int row, int sheet = 0) { return std::unique_ptr<Cursor>(nullptr); }
 
     virtual std::unique_ptr<Cursor> insert(const Key & key) = 0;
-    virtual std::unique_ptr<Cursor> insert() = 0;
+    virtual std::unique_ptr<Cursor> insert(int sheet = 0) = 0;
     virtual std::unique_ptr<Cursor> increment(const Key & key) = 0;
     virtual std::unique_ptr<Cursor> assign(std::vector<int> columns) = 0;
     virtual void remove(const Key & key) = 0;
@@ -45,10 +45,11 @@ namespace sqldb {
     virtual void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) = 0;
     virtual void clear() = 0;
 
-    virtual int getNumFields() const = 0;
-    virtual ColumnType getColumnType(int column_index) const = 0;
-    virtual bool isColumnUnique(int column_index) const { return false; }
-    virtual const std::string & getColumnName(int column_index) const = 0;
+    virtual int getNumSheets() const { return 1; }
+    virtual int getNumFields(int sheet = 0) const = 0;
+    virtual ColumnType getColumnType(int column_index, int sheet = 0) const = 0;
+    virtual bool isColumnUnique(int column_index, int sheet = 0) const { return false; }
+    virtual const std::string & getColumnName(int column_index, int sheet = 0) const = 0;
     
     virtual void begin() { }
     virtual void commit() { }
@@ -64,7 +65,7 @@ namespace sqldb {
       
       if (auto cursor = other.seekBegin()) {
 	int n = 0;
-	do {
+	do {	  
 	  if (n == 0) begin();
 	  auto my_cursor = insert(cursor->getRowKey());
 	  for (int i = 0; i < cursor->getNumFields(); i++) {
@@ -103,7 +104,7 @@ namespace sqldb {
 	    }
 	  }
 	  my_cursor->execute();
-	  if (++n == 4096) {	  
+	  if (++n == 4096) {
 	    commit();
 	    n = 0;
 	  }
@@ -216,6 +217,8 @@ namespace sqldb {
     
     const Log & getLog() const { return *log_; }
     Log & getLog() { return *log_; }
+
+    static inline std::string empty_string;
     
   private:
     std::vector<ColumnType> key_type_;

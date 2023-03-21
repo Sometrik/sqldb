@@ -18,23 +18,22 @@ namespace sqldb {
     void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) override;
     
     std::unique_ptr<Cursor> insert(const Key & key) override;
-    std::unique_ptr<Cursor> insert() override;
+    std::unique_ptr<Cursor> insert(int sheet = 0) override;
     std::unique_ptr<Cursor> increment(const Key & key) override;
     std::unique_ptr<Cursor> assign(std::vector<int> columns) override;
     void remove(const Key & key) override;
     
-    std::unique_ptr<Cursor> seekBegin() override;    
+    std::unique_ptr<Cursor> seekBegin(int sheet = 0) override;    
     std::unique_ptr<Cursor> seek(const Key & key) override;
     
-    int getNumFields() const override;
-    int getNumRows() const;
+    int getNumFields(int sheet = 0) const override;
     
-    ColumnType getColumnType(int column_index) const override;
-    const std::string & getColumnName(int column_index) const override;
-    bool isColumnUnique(int column_index) const override;
+    ColumnType getColumnType(int column_index, int sheet) const override;
+    const std::string & getColumnName(int column_index, int sheet) const override;
+    bool isColumnUnique(int column_index, int sheet) const override;
     
     void clear() override;
-          
+    
   private:
     std::shared_ptr<MemoryStorage> storage_;
   };
