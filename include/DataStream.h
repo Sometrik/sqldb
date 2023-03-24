@@ -74,9 +74,6 @@ namespace sqldb {
     void bind(long long value, bool is_defined = true) {
       set(getNextBindIndex(), value, is_defined);
     }  
-    void bind(ssize_t value, bool is_defined = true) {
-      set(getNextBindIndex(), static_cast<long long>(value), is_defined);
-    }  
     void bind(double value, bool is_defined = true) {
       set(getNextBindIndex(), value, is_defined);
     }
