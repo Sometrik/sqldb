@@ -177,6 +177,16 @@ namespace sqldb {
       return key;
     }
 
+    Key getParentKey() const noexcept {
+      if (size() >= 2) {
+	sqldb::Key key = *this;
+	key.pop_back();
+	return key;
+      } else {
+	return sqldb::Key();
+      }
+    }
+
     inline size_t getHash() const noexcept {
       size_t seed = 0;
       for (auto & c : components_) {
