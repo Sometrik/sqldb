@@ -219,7 +219,7 @@ private:
 
 class CSVCursor : public Cursor {
 public:
-  CSVCursor(const std::shared_ptr<sqldb::CSVFile> & csv, int row) : csv_(csv) {
+  CSVCursor(const std::shared_ptr<sqldb::CSVFile> & csv, int row, int sheet) : csv_(csv), sheet_(sheet) {
     csv_->seek(row);
     updateRowKey();
   }
@@ -325,44 +325,57 @@ public:
 protected:
   void updateRowKey() {
     Key key;
+    key.addComponent(sheet_);
     if (csv_->getNextRowIdx() >= 1) key.addComponent(csv_->getNextRowIdx() - 1);
     setRowKey(std::move(key));
   }
 
 private:
+  int sheet_;
   std::shared_ptr<CSVFile> csv_;
 };
 
-CSV::CSV(std::string csv_file, bool has_records)
-  : csv_(make_shared<CSVFile>(move(csv_file), has_records)) {
-  std::vector<ColumnType> key_type = { ColumnType::INT };
+CSV::CSV(std::string csv_file, bool has_records) {
+  csv_.push_back(make_shared<CSVFile>(move(csv_file), has_records));
+  
+  std::vector<ColumnType> key_type = { ColumnType::INT, ColumnType::INT };
   setKeyType(std::move(key_type));
 }
 
-CSV::CSV(const CSV & other)
-  : Table(other),
-    csv_(make_shared<CSVFile>(*other.csv_)) { }
+CSV::CSV(const CSV & other): Table(other) {
+  for (auto & csv : other.csv_) {
+    csv_.push_back(make_shared<CSVFile>(*csv));
+  }
+}
+
 CSV::CSV(CSV && other)
   : Table(other),
     csv_(move(other.csv_)) { }
 
 int
-CSV::getNumFields() const {
-  return csv_->getNumFields();
+CSV::getNumFields(int sheet) const {
+  if (sheet >= 0 && sheet < static_cast<int>(csv_.size())) {
+    return csv_[sheet]->getNumFields();
+  } else {
+    return 0;
+  }
 }
 
 const std::string &
-CSV::getColumnName(int column_index) const {
-  return csv_->getColumnName(column_index);
+CSV::getColumnName(int column_index, int sheet) const {
+  if (sheet >= 0 && sheet < static_cast<int>(csv_.size())) {
+    return csv_[sheet]->getColumnName(column_index);
+  } else {
+    return empty_string;
+  }
 }
 
 unique_ptr<Cursor>
 CSV::seek(const Key & key) {
-  assert(key.size() == 1);
-  return seek(key.getInt(0));
+  return seek(key.getInt(1), key.getInt(0));
 }
 
 unique_ptr<Cursor>
-CSV::seek(int row) {
-  return make_unique<CSVCursor>(csv_, row);
+CSV::seek(int row, int sheet) {
+  return make_unique<CSVCursor>(csv_[sheet], row, sheet);
 }

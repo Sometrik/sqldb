@@ -113,7 +113,7 @@ private:
 
 class AudioCursor : public Cursor {
 public:
-  AudioCursor(const std::shared_ptr<sqldb::AudioFile> & audio, long long track, long long from, long long to)
+  AudioCursor(const std::shared_ptr<sqldb::AudioFile> & audio, int track, long long from, long long to)
     : audio_(audio), track_(track), from_(from), to_(to) {
     updateRowKey();
   }
@@ -154,10 +154,14 @@ public:
   }
 
   const std::vector<float> & getVector(int column_index) override {
-    if (track_ == 0 && column_index == 1) {
+    if (column_index == 1) {
       if (!has_data_) {
 	has_data_ = true;
-	data_ = audio_->read(from_, to_ - from_);
+	if (!from_ && !to_) {
+	  data_ = audio_->read(0, audio_->getNumFrames());
+	} else {
+	  data_ = audio_->read(from_, to_ - from_);
+	}
       }
       return data_;
     } else {
@@ -165,7 +169,7 @@ public:
     }
   }
 
-  bool isNull(int column_index) const override { return track_ != 0 || !(column_index >= 0 && column_index < getNumFields()); }
+  bool isNull(int column_index) const override { return !(column_index >= 0 && column_index < getNumFields()); }
   
   void set(int column_idx, std::string_view value, bool is_defined = true) override {
     throw std::runtime_error("Audio is read-only");
@@ -203,61 +207,67 @@ protected:
   void updateRowKey() {
     Key key;
     key.addComponent(track_);
-    key.addComponent(from_);
-    key.addComponent(to_);
+    if (from_ || to_) {
+      key.addComponent(from_);
+      key.addComponent(to_);
+    }
     setRowKey(std::move(key));
   }
 
 private:
   std::shared_ptr<AudioFile> audio_;
-  long long track_, from_, to_;
+  int track_;
+  long long from_, to_;
   bool has_data_ = false;
   std::vector<float> data_;
 };
 
-Audio::Audio(std::string filename)
-  : audio_(make_shared<AudioFile>(move(filename))) {
+Audio::Audio(std::string filename) {
+  audio_.push_back(make_shared<AudioFile>(move(filename)));
 
-  std::vector<ColumnType> key_type = { ColumnType::INT64, ColumnType::INT64, ColumnType::INT64 };
+  std::vector<ColumnType> key_type = { ColumnType::INT64 };
   setKeyType(std::move(key_type));
   setHasHumanReadableKey(true);
 }
 
 Audio::Audio(const Audio & other)
-  : Table(other),
-    audio_(make_shared<AudioFile>(*other.audio_)) { }
+  : Table(other)
+{
+  for (auto & a : other.audio_) {
+    audio_.push_back(make_shared<AudioFile>(*a));
+  }
+}
 
 Audio::Audio(Audio && other)
   : Table(other),
     audio_(move(other.audio_)) { }
 
 int
-Audio::getNumFields() const {
-  return audio_->getNumFields();
+Audio::getNumFields(int track) const {
+  return audio_[track]->getNumFields();
 }
 
 const std::string &
-Audio::getColumnName(int column_index) const {
-  return audio_->getColumnName(column_index);
+Audio::getColumnName(int column_index, int track) const {
+  return audio_[track]->getColumnName(column_index);
 }
 
 ColumnType
-Audio::getColumnType(int column_index) const {
-  return audio_->getColumnType(column_index);
+Audio::getColumnType(int column_index, int track) const {
+  return audio_[track]->getColumnType(column_index);
 }
 
 std::unique_ptr<Cursor>
-Audio::seekBegin() {
-  return seek(0, 0, audio_->getNumFrames());
+Audio::seekBegin(int track) {
+  return make_unique<AudioCursor>(audio_[track], track, 0, 0);
 }
 
 unique_ptr<Cursor>
 Audio::seek(const Key & key) {
-  assert(key.size() == 3);
-  return seek(key.getLongLong(0), key.getLongLong(1), key.getLongLong(2));
-}
-
-unique_ptr<Cursor>
-Audio::seek(long long track, long long from, long long to) {
-  return make_unique<AudioCursor>(audio_, track, from, to);
+  int track = key.getLongLong(0);
+  if (key.size() == 1) {
+    return make_unique<AudioCursor>(audio_[track], track, 0, 0);
+  } else {
+    return make_unique<AudioCursor>(audio_[track], track, key.getLongLong(1), key.getLongLong(2));
+  }
 }

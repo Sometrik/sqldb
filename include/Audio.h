@@ -17,9 +17,9 @@ namespace sqldb {
 
     std::unique_ptr<Table> copy() const override { return std::make_unique<Audio>(*this); }
        
-    int getNumFields() const override;    
-    const std::string & getColumnName(int column_index) const override;
-    ColumnType getColumnType(int column_index) const override;
+    int getNumFields(int sheet) const override;    
+    const std::string & getColumnName(int column_index, int sheet) const override;
+    ColumnType getColumnType(int column_index, int sheet) const override;
     
     void clear() override {
       throw std::runtime_error("Audio is read-only");
@@ -33,7 +33,7 @@ namespace sqldb {
       throw std::runtime_error("Audio is read-only");
     }
 
-    std::unique_ptr<Cursor> insert() override {
+    std::unique_ptr<Cursor> insert(int sheet) override {
       throw std::runtime_error("Audio is read-only");
     }
 
@@ -49,13 +49,12 @@ namespace sqldb {
       throw std::runtime_error("Audio is read-only");
     }
 
-    std::unique_ptr<Cursor> seekBegin() override;
+    std::unique_ptr<Cursor> seekBegin(int sheet) override;
     std::unique_ptr<Cursor> seek(const Key & key) override;
-    std::unique_ptr<Cursor> seek(long long track, long long from, long long to);
     
   private:
     // audio_ is shared with cursors
-    std::shared_ptr<AudioFile> audio_;
+    std::vector<std::shared_ptr<AudioFile>> audio_;
   };
 };
 

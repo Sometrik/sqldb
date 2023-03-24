@@ -19,9 +19,9 @@ namespace sqldb {
 
     std::unique_ptr<Table> copy() const override { return std::make_unique<DBase4>(*this); }
        
-    int getNumFields() const override;
-    const std::string & getColumnName(int column_index) const override;
-    ColumnType getColumnType(int column_index) const override;
+    int getNumFields(int sheet) const override;
+    const std::string & getColumnName(int column_index, int sheet) const override;
+    ColumnType getColumnType(int column_index, int sheet) const override;
     
     void clear() override {
       throw std::runtime_error("dBase4 is read-only");
@@ -35,7 +35,7 @@ namespace sqldb {
       throw std::runtime_error("dBase4 is read-only");
     }
 
-    std::unique_ptr<Cursor> insert() override {
+    std::unique_ptr<Cursor> insert(int sheet) override {
       throw std::runtime_error("dBase4 is read-only");
     }
 
@@ -51,9 +51,9 @@ namespace sqldb {
       throw std::runtime_error("dBase4 is read-only");
     }
 
-    std::unique_ptr<Cursor> seekBegin() override { return seek(0); }
+    std::unique_ptr<Cursor> seekBegin(int sheet) override { return seek(0); }
     std::unique_ptr<Cursor> seek(const Key & key) override;
-    std::unique_ptr<Cursor> seek(int row) override;
+    std::unique_ptr<Cursor> seek(int row, int sheet = 0) override;
 
     void setPrimaryKeyMapping(std::unordered_map<sqldb::Key, int> m) { primary_key_mapping_ = std::move(m); }
 

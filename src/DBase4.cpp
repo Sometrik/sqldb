@@ -73,15 +73,6 @@ public:
     return row_index < 0 || row_index >= record_count_ || DBFIsAttributeNULL(h_, row_index, column_index);
   }
 
-  Key getRowKey(int row) const {
-    Key key;
-    if (row >= 0) {
-      if (primary_key_ == -1) key.addComponent(row);
-      else key.addComponent(getText(row, primary_key_));
-    }
-    return key;
-  }
-
   int getRecordCount() { return record_count_; }
   int getNumFields() const { return static_cast<int>(column_types_.size()); }
   
@@ -94,6 +85,8 @@ public:
     auto idx = static_cast<size_t>(column_index);
     return idx < column_types_.size() ? column_types_[idx] : ColumnType::ANY;
   }
+
+  int getPrimaryKey() const { return primary_key_; }
 
 private:
   void initialize() {
@@ -231,7 +224,17 @@ public:
 
 protected:
   void updateRowKey() {
-    setRowKey(dbf_->getRowKey(current_row_));
+    Key key;
+    if (current_row_ >= 0) {
+      int primary_key = dbf_->getPrimaryKey();
+      if (primary_key >= 0) {
+	key.addComponent(dbf_->getText(current_row_, primary_key));
+      } else {
+	key.addComponent(0);
+	key.addComponent(current_row_);
+      }
+    }
+    setRowKey(std::move(key));
   }
 
 private:
@@ -244,8 +247,12 @@ DBase4::DBase4(std::string filename, int primary_key)
   : dbf_(make_shared<DBase4File>(move(filename), primary_key))
 {
   std::vector<ColumnType> key_type;
-  if (primary_key == -1) key_type.push_back(ColumnType::INT);
-  else key_type.push_back(ColumnType::VARCHAR); // FIXME: get the actual type
+  if (primary_key == -1) {
+    key_type.push_back(ColumnType::INT);
+    key_type.push_back(ColumnType::INT);
+  } else {
+    key_type.push_back(ColumnType::VARCHAR); // FIXME: get the actual type
+  }
   setKeyType(std::move(key_type));
 }
 
@@ -260,23 +267,23 @@ DBase4::DBase4(DBase4 && other)
     primary_key_mapping_(move(other.primary_key_mapping_)) { }
 
 int
-DBase4::getNumFields() const {
+DBase4::getNumFields(int sheet) const {
   return dbf_->getNumFields();
 }
 
 const std::string &
-DBase4::getColumnName(int column_index) const {
+DBase4::getColumnName(int column_index, int sheet) const {
   return dbf_->getColumnName(column_index);
 }
 
 ColumnType
-DBase4::getColumnType(int column_index) const {
+DBase4::getColumnType(int column_index, int sheet) const {
   return dbf_->getColumnType(column_index);
 }
 
 unique_ptr<Cursor>
 DBase4::seek(const Key & key) {
-  assert(key.size() == 1);
+  assert(key.size() == 2);
   if (!primary_key_mapping_.empty()) {
     auto it = primary_key_mapping_.find(key);
     if (it != primary_key_mapping_.end()) {
@@ -285,11 +292,11 @@ DBase4::seek(const Key & key) {
       return unique_ptr<DBase4Cursor>(nullptr);
     }
   } else {
-    return seek(key.getInt(0));
+    return seek(key.getInt(1));
   }
 }
 
 unique_ptr<Cursor>
-DBase4::seek(int row) {
+DBase4::seek(int row, int sheet) {
   return make_unique<DBase4Cursor>(dbf_, row);
 }

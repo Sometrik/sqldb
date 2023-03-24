@@ -17,11 +17,11 @@ namespace sqldb {
 
     std::unique_ptr<Table> copy() const override { return std::make_unique<CSV>(*this); }
        
-    int getNumFields() const override;
-    const std::string & getColumnName(int column_index) const override;
+    int getNumFields(int sheet) const override;
+    const std::string & getColumnName(int column_index, int sheet) const override;
 
-    ColumnType getColumnType(int column_index) const override {
-      return column_index >= 0 && column_index < getNumFields() ? ColumnType::TEXT : ColumnType::ANY;
+    ColumnType getColumnType(int column_index, int sheet) const override {
+      return sheet == 0 && (column_index >= 0 && column_index < getNumFields(sheet)) ? ColumnType::TEXT : ColumnType::ANY;
     }
 
     void clear() override {
@@ -36,7 +36,7 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> insert() override {
+    std::unique_ptr<Cursor> insert(int sheet = 0) override {
       throw std::runtime_error("CSV is read-only");
     }
 
@@ -52,13 +52,13 @@ namespace sqldb {
       throw std::runtime_error("CSV is read-only");
     }
 
-    std::unique_ptr<Cursor> seekBegin() override { return seek(0); }
+    std::unique_ptr<Cursor> seekBegin(int sheet) override { return seek(0, sheet); }
     std::unique_ptr<Cursor> seek(const Key & key) override;
-    std::unique_ptr<Cursor> seek(int row) override;
+    std::unique_ptr<Cursor> seek(int row, int sheet) override;
     
   private:
     // csv_ is shared with cursors
-    std::shared_ptr<CSVFile> csv_;    
+    std::vector<std::shared_ptr<CSVFile>> csv_;
   };
 };
 
