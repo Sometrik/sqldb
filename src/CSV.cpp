@@ -133,7 +133,7 @@ public:
       input_buffer_.clear();
       next_row_idx_ = static_cast<int>(row_offsets_.size()) - 1;
       fseek(in_, row_offsets_.back(), SEEK_SET);
-      row -= row_offsets_.size() - 1;
+      row -= static_cast<int>(row_offsets_.size()) - 1;
     }
     while (row > 0) {
       bool r = next();
