@@ -33,6 +33,7 @@ namespace sqldb {
     }
     explicit Key(int value1, const Key & value2) noexcept {
       addComponent(value1);
+      startColumn();
       for (size_t i = 0; i < value2.size(); i++) {
 	addComponent(value2, i);
       }
@@ -43,8 +44,11 @@ namespace sqldb {
     }
     explicit Key(Key value1, Key value2, Key value3, Key value4) noexcept {
       addComponent(std::move(value1));
+      startColumn();
       addComponent(std::move(value2));
+      startColumn();
       addComponent(std::move(value3));
+      startColumn();
       addComponent(std::move(value4));
     }
     explicit Key(int value1, int value2, int value3, int value4) noexcept {
@@ -74,7 +78,11 @@ namespace sqldb {
       return components_ != other.components_;
     }
 
-    void clear() noexcept { components_.clear(); }
+    void clear() noexcept {
+      components_.clear();
+      columns_.clear();
+    }
+    
     bool empty() const noexcept { return components_.empty(); }
     size_t size() const noexcept { return components_.size(); }
     void resize(size_t s) { components_.resize(s); }
@@ -85,19 +93,23 @@ namespace sqldb {
     void pop_back() { components_.pop_back(); }
 
     void addComponent(int value) noexcept {
-      components_.push_back(value);
+      addComponent(static_cast<long long>(value));
+    }
+
+    void addComponent(std::string_view value) noexcept {
+      addComponent(std::string(value));
     }
 
     void addComponent(long long value) noexcept {
       components_.push_back(value);
+      if (columns_.empty()) columns_.push_back(0);
+      columns_.back()++;
     }
 
     void addComponent(std::string value) noexcept {
       components_.push_back(std::move(value));
-    }
-
-    void addComponent(std::string_view value) noexcept {
-      components_.push_back(std::string(value));
+      if (columns_.empty()) columns_.push_back(0);
+      columns_.back()++;
     }
 
     void addComponent(const Key & other, size_t idx = 0) noexcept {
@@ -106,6 +118,10 @@ namespace sqldb {
       } else {
 	addComponent(other.getText(idx));
       }
+    }
+
+    void startColumn() {
+      columns_.push_back(0);
     }
 
     void setComponent(size_t idx, long long value) { components_[idx] = value; }
@@ -177,6 +193,16 @@ namespace sqldb {
       return key;
     }
 
+    Key getColumn(size_t i) const noexcept {
+      if (i < columns_.size()) {
+	size_t start = 0;
+	for (size_t j = 0; j < i; j++) start += columns_[j];
+	return getSubKey(start, columns_[i]);
+      } else {
+	return sqldb::Key();
+      }      
+    }
+
     Key getParentKey() const noexcept {
       if (size() >= 2) {
 	sqldb::Key key = *this;
@@ -216,6 +242,7 @@ namespace sqldb {
 
   private:    
     std::vector<std::variant<long long, std::string>> components_;
+    std::vector<unsigned short> columns_;
 
     static inline std::string empty_string;
   };
