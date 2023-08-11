@@ -120,6 +120,16 @@ namespace sqldb {
       }
     }
 
+    void addSubKey(const Key & other) noexcept {
+      for (size_t i = 0; i < other.size(); i++) {
+	if (is_numeric(other.getType(i))) {
+	  addComponent(other.getLongLong(i));
+	} else {
+	  addComponent(other.getText(i));
+	}
+      }
+    }
+
     void startColumn() {
       columns_.push_back(0);
     }
