@@ -2,11 +2,12 @@
 
 #include <Cursor.h>
 
+#include "TextFile.h"
+#include "utils.h"
+
 #include <vector>
 #include <cassert>
 #include <charconv>
-
-#include "utils.h"
 
 using namespace sqldb;
 using namespace std;
@@ -30,31 +31,29 @@ static inline vector<string> split(string_view line, char delimiter) {
 	else if (c == '"') in_quote = false;
 	else current += c;
       } else if (c == delimiter) {
-	r.push_back(current);
+	r.push_back(std::move(current));
 	current.clear();
       } else {
 	current += c;
       }     
     }
-    r.push_back(current);
+    r.push_back(std::move(current));
   }
   return r;
 }
 
-class sqldb::CSVFile {
+class sqldb::CSVFile : public sqldb::TextFile {
 public:
-  CSVFile(std::string csv_file, bool has_records) : csv_file_(move(csv_file)) {
+  CSVFile(std::string filename, bool has_records) : TextFile(move(filename)) {
     open(has_records);
   }
 
   void open(bool has_records) {
-    in_ = fopen(csv_file_.c_str(), "rb");
+    in_ = fopen(filename_.c_str(), "rb");
     
     if (in_) {      
-      // cerr << "getting header\n";
-      
       if (has_records) {
-	auto s = get_record();
+	auto [ s, error ] = get_record();
 
 	// autodetect delimiter
 	if (!delimiter_) {
@@ -76,27 +75,26 @@ public:
 	  if (best_n) {
 	    delimiter_ = best_delimiter;
 	  }	
-	  // cerr << "delimiter = " << delimiter_ << "\n";
 	}
 	header_row_ = split(s, delimiter_);
       } else {
 	header_row_.push_back("Content");
       }
     } else {
-      // cerr << "failed to open\n";
+      throw std::runtime_error("Failed to open CSV");
     }
   }
   
   CSVFile(const CSVFile & other) :
-    csv_file_(other.csv_file_),
+    TextFile(other),
     delimiter_(other.delimiter_),
     next_row_idx_(other.next_row_idx_),
     header_row_(other.header_row_),
     current_row_(other.current_row_),
-    input_buffer_(other.input_buffer_),
+    // input_buffer_(other.input_buffer_),
     row_offsets_(other.row_offsets_)
   {
-    in_ = fopen(csv_file_.c_str(), "rb");
+    in_ = fopen(filename_.c_str(), "rb");
     if (in_) fseek(in_, ftell(other.in_), SEEK_SET);
   }
   
@@ -117,9 +115,12 @@ public:
     return idx < header_row_.size() ? header_row_[idx] : null_string;
   }
 
-  int getNextRowIdx() const { return next_row_idx_; }
-  
+  int getNextRowIdx() const { return next_row_idx_; }  
+
   bool seek(int row) {
+    if (!in_) {
+      return false;
+    }
     if (row + 1 == next_row_idx_) {
       return true;
     }
@@ -136,7 +137,7 @@ public:
       row -= static_cast<int>(row_offsets_.size()) - 1;
     }
     while (row > 0) {
-      bool r = next();
+      auto r = next();
       if (!r) return false;
       row--;
     }
@@ -145,10 +146,17 @@ public:
 
   bool next() {
     size_t row_offset = ftell(in_) - input_buffer_.size();
-    auto s = get_record();
-    
-    if (s.empty()) {
+    auto [ s, ec ] = get_record();
+
+    switch (ec) {
+    case Error::OK:
+      break;
+
+    case Error::Eof:
       return false;
+
+    case Error::InvalidUtf8:
+      throw std::runtime_error("Invalid UTF8 in CSV");
     }
     
     current_row_ = split(s, delimiter_);
@@ -161,10 +169,8 @@ public:
   }
   
 private:
-  std::string get_record() {
+  std::pair<std::string, Error> get_record() {
     while ( 1 ) {
-      // std::cerr << "parsing " << input_buffer_.size() << "\n";
-      
       bool quoted = false;
       for (size_t i = 0; i < input_buffer_.size(); i++) {
 	if (!quoted && input_buffer_[i] == '"') {
@@ -176,15 +182,15 @@ private:
 	} else if (!quoted && input_buffer_[i] == '\n') {
 	  auto record0 = string_view(input_buffer_).substr(0, i);
 	  if (record0.back() == '\r') record0.remove_suffix(1);
-	  auto r = normalize_nfc(record0);
-	  // std::cerr << "found record: " << rec << "\n";
+	  auto [ r, ec ] = normalize_nfc(record0);
+
 	  input_buffer_ = input_buffer_.substr(i + 1);
-	  return r;
+	  
+	  if (ec) return std::pair(std::move(r), Error::InvalidUtf8);
+	  else return std::pair(std::move(r), Error::OK);
 	}
       }
-      
-      // std::cerr << "reading more\n";
-      
+            
       if (in_) {
 	char buffer[4096];
 	auto r = fread(buffer, 1, 4096, in_);
@@ -196,22 +202,20 @@ private:
 
       // If the last row is not \n terminated, return it anyway
       if (!input_buffer_.empty()) {
-	auto r = normalize_nfc(input_buffer_);
+	auto [ r, ec ] = normalize_nfc(input_buffer_);
 	input_buffer_.clear();
-	return r;
+	if (ec) return std::pair(r, Error::InvalidUtf8);
+	else return std::pair(r, Error::OK);
       } else {
-	return "";
+	return std::pair(std::string(), Error::Eof);
       }
     }
   }
     
-  std::string csv_file_;
-  FILE * in_ = 0;
   char delimiter_ = 0;
   int next_row_idx_ = 0;
   std::vector<std::string> header_row_;
   std::vector<std::string> current_row_;
-  std::string input_buffer_;
   std::vector<size_t> row_offsets_;
   
   static inline std::string null_string;
@@ -331,8 +335,8 @@ protected:
   }
 
 private:
-  int sheet_;
   std::shared_ptr<CSVFile> csv_;
+  int sheet_;
 };
 
 CSV::CSV(std::string csv_file, bool has_records) {

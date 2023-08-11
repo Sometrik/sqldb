@@ -18,7 +18,7 @@ public:
     if (h_) {
       initialize();
     } else {
-      // cerr << "failed to open DBF " << fn_ << endl;
+      throw std::runtime_error("failed to open DBase4 file");
     }
   }
 
@@ -27,7 +27,7 @@ public:
     if (h_) {
       initialize();
     } else {
-      // cerr << "failed to open DBF " << fn_ << endl;
+      throw std::runtime_error("failed to open DBase4 file");
     }
   }
 
@@ -39,8 +39,12 @@ public:
 
   std::string getText(int row_index, int column_index) const {
     if (!isNull(row_index, column_index)) {
-      auto r = DBFReadStringAttribute(h_, row_index, column_index);
-      if (r) return normalize_nfc(r);
+      auto r0 = DBFReadStringAttribute(h_, row_index, column_index);
+      if (r0) {
+	auto [ r, ec ] = normalize_nfc(r0);
+	if (ec) throw std::runtime_error("Invalid UTF8 in DBase4");
+	return r;
+      }
     }
     return "";
   }
