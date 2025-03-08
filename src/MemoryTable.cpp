@@ -32,9 +32,9 @@ public:
     data_.erase(key);
   }
 
-  void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) {
+  void addColumn(std::string_view name, sqldb::ColumnType type, bool unique, int decimals) {
     std::lock_guard<std::mutex> guard(mutex_);
-    header_row_.push_back(std::tuple(type, std::string(name), unique));
+    header_row_.push_back(std::tuple(type, std::string(name), unique, decimals));
   }
   
   int getNumFields() const {
@@ -64,6 +64,12 @@ public:
     return idx < header_row_.size() ? std::get<2>(header_row_[idx]) : false;
   }
 
+  int getColumnDecimals(int column_index) const {
+    std::lock_guard<std::mutex> guard(mutex_);
+    auto idx = static_cast<size_t>(column_index);
+    return idx < header_row_.size() ? std::get<3>(header_row_[idx]) : false;
+  }
+
   void clear() {
     std::lock_guard<std::mutex> guard(mutex_);
     data_.clear();    
@@ -74,7 +80,7 @@ public:
 private:
   // use ordered map for iterator stability
   std::map<Key, std::vector<std::string> > data_;
-  std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
+  std::vector<std::tuple<ColumnType, std::string, bool, int> > header_row_;
   long long auto_increment_ = 0;
   mutable std::mutex mutex_;
 
@@ -302,7 +308,7 @@ protected:
 
 private:
   MemoryStorage* storage_;
-  std::vector<std::tuple<ColumnType, std::string, bool> > header_row_;
+  std::vector<std::tuple<ColumnType, std::string, bool, int> > header_row_;
   std::map<Key, std::vector<std::string> >::iterator it_;
   Key pending_key_;
   std::unordered_map<int, std::string> pending_row_;
@@ -372,8 +378,8 @@ MemoryTable::MemoryTable(std::vector<ColumnType> key_type)
 }
 
 void
-MemoryTable::addColumn(std::string_view name, sqldb::ColumnType type, bool unique) {
-  storage_->addColumn(std::move(name), type, unique);
+MemoryTable::addColumn(std::string_view name, sqldb::ColumnType type, bool unique, int decimals) {
+  storage_->addColumn(std::move(name), type, unique, decimals);
 }
 
 std::unique_ptr<Cursor>
@@ -429,6 +435,11 @@ MemoryTable::getColumnName(int column_index, int sheet) const {
 bool
 MemoryTable::isColumnUnique(int column_index, int sheet) const {
   return storage_->isColumnUnique(column_index);
+}
+
+int
+MemoryTable::getColumnDecimals(int column_index) const {
+  return storage_->getColumnDecimals(column_index);
 }
 
 void

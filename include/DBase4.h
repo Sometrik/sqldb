@@ -27,7 +27,7 @@ namespace sqldb {
       throw std::runtime_error("dBase4 is read-only");
     }
 
-    void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) override {
+    void addColumn(std::string_view name, sqldb::ColumnType type, bool unique, int decimals) override {
       throw std::runtime_error("dBase4 is read-only");
     }
 

@@ -61,6 +61,11 @@ namespace sqldb {
       addComponent(value1);
       addComponent(value2);
     }
+    explicit Key(std::initializer_list<std::string> v) {
+      for (auto & a : v) {
+	addComponent(a);
+      }
+    }
 
     bool operator < (const Key & other) const noexcept {
       for (size_t pos = 0; pos < components_.size() && pos < other.components_.size(); pos++) {

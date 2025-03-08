@@ -42,7 +42,7 @@ namespace sqldb {
     }    
     
     virtual std::unique_ptr<Table> copy() const = 0;
-    virtual void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false) = 0;
+    virtual void addColumn(std::string_view name, sqldb::ColumnType type, bool unique = false, int decimals = -1) = 0;
     virtual void clear() = 0;
 
     virtual int getNumSheets() const { return 1; }
@@ -50,6 +50,7 @@ namespace sqldb {
     virtual ColumnType getColumnType(int column_index, int sheet = 0) const = 0;
     virtual bool isColumnUnique(int column_index, int sheet = 0) const { return false; }
     virtual const std::string & getColumnName(int column_index, int sheet = 0) const = 0;
+    virtual int getColumnDecimals(int column_index) const { return 0; }
     
     virtual void begin() { }
     virtual void commit() { }
@@ -59,7 +60,7 @@ namespace sqldb {
       if (!getNumFields()) { // FIXME 
 	setKeyType(other.getKeyType());
 	for (int i = 0; i < other.getNumFields(); i++) {
-	  addColumn(other.getColumnName(i), other.getColumnType(i), other.isColumnUnique(i));
+	  addColumn(other.getColumnName(i), other.getColumnType(i), other.isColumnUnique(i), other.getColumnDecimals(i));
 	}
       }
       
@@ -160,7 +161,7 @@ namespace sqldb {
     void addVarCharColumn(std::string_view name, bool unique = false) { addColumn(std::move(name), ColumnType::VARCHAR, unique); }
     void addTextColumn(std::string_view name) { addColumn(std::move(name), ColumnType::TEXT); }
     void addFloatColumn(std::string_view name) { addColumn(std::move(name), ColumnType::FLOAT); }
-    void addDoubleColumn(std::string_view name) { addColumn(std::move(name), ColumnType::DOUBLE); }
+    void addDoubleColumn(std::string_view name, int decimals = -1) { addColumn(std::move(name), ColumnType::DOUBLE, false, decimals); }
     void addURLColumn(std::string_view name) { addColumn(std::move(name), ColumnType::URL); }
     void addTextKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::TEXT_KEY); }
     void addBinaryKeyColumn(std::string_view name) { addColumn(std::move(name), ColumnType::BINARY_KEY); }
